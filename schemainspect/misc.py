@@ -15,17 +15,17 @@ def connection_from_s_or_c(s_or_c):  # pragma: no cover
 class AutoRepr(object):  # pragma: no cover
     def __repr__(self):
         cname = self.__class__.__name__
-        indent = ' ' * (len(cname) + 1)
         vals = [
             '{}={}'.format(k, repr(v))
             for k, v in sorted(self.__dict__.items()) if not k.startswith('_')
         ]
-
-        return '\n{}({})\n'.format(self.__class__.__name__,
-                                   ',\n{}'.format(indent).join(vals))
+        return '{}({})'.format(cname, ', '.join(vals))
 
     def __str__(self):
         return repr(self)
+
+    def __ne__(self, other):
+        return not self == other
 
 
 def quoted_identifier(identifier):

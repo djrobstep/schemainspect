@@ -1,4 +1,5 @@
 from .misc import AutoRepr, quoted_identifier
+from collections import OrderedDict as od
 
 
 class Inspected(AutoRepr):
@@ -18,6 +19,17 @@ class Inspected(AutoRepr):
     @property
     def quoted_schema(self):
         return quoted_identifier(self.schema)
+
+    def __ne__(self, other):
+        return not self == other
+
+
+class TableRelated(object):
+    @property
+    def quoted_full_table_name(self):
+        return '{}.{}'.format(
+            quoted_identifier(self.schema),
+            quoted_identifier(self.table_name))
 
 
 class ColumnInfo(AutoRepr):
@@ -44,23 +56,72 @@ class ColumnInfo(AutoRepr):
             and self.default == other.default \
             and self.not_null == other.not_null
 
-    def __hash__(self):
-        s = '{},{},{},{}'.format(self.name, self.dbtype, self.pytype,
-                                 self.default, self.not_null)
-        return hash(s)
+    def alter_clauses(self, other):
+        clauses = []
+
+        if self.not_null != other.not_null:
+            clauses.append(self.alter_not_null_clause)
+        if self.default != other.default:
+            clauses.append(self.alter_default_clause)
+        if self.dbtypestr != other.dbtypestr:
+            clauses.append(self.alter_data_type_clause)
+
+        return clauses
+
+    def alter_table_statements(self, other, table_name):
+        prefix = 'alter table {}'.format(table_name)
+        return ['{} {};'.format(prefix, c) for c in self.alter_clauses(other)]
 
     @property
     def quoted_name(self):
         return quoted_identifier(self.name)
 
     @property
-    def creation_sql(self):
+    def creation_clause(self):
         x = '{} {}'.format(self.quoted_name, self.dbtypestr)
         if self.not_null:
             x += ' not null'
         if self.default:
             x += ' default {}'.format(self.default)
         return x
+
+    @property
+    def add_column_clause(self):
+        return 'add column {k} {dtype}'.format(
+            k=self.quoted_name,
+            dtype=self.dbtypestr)
+
+    @property
+    def drop_column_clause(self):
+        return 'drop column {k}'.format(k=self.quoted_name)
+
+    @property
+    def alter_not_null_clause(self):
+        keyword = 'set' if self.not_null else 'drop'
+
+        return 'alter column {} {} not null'.format(
+            self.quoted_name,
+            keyword
+        )
+
+    @property
+    def alter_default_clause(self):
+        if self.default:
+            alter = 'alter column {} set default {}'.format(
+                self.quoted_name,
+                self.default
+            )
+        else:
+            alter = 'alter column {} drop default'.format(
+                self.quoted_name
+            )
+        return alter
+
+    @property
+    def alter_data_type_clause(self):
+        return 'alter column {} set data type {}'.format(
+            self.quoted_name,
+            self.dbtypestr)
 
 
 class InspectedSelectable(Inspected):
@@ -70,8 +131,6 @@ class InspectedSelectable(Inspected):
                  columns,
                  inputs=None,
                  definition=None,
-                 drop_statement=None,
-                 create_statement=None,
                  relationtype='unknown'):
         self.name = name
         self.schema = schema
@@ -79,8 +138,9 @@ class InspectedSelectable(Inspected):
         self.columns = columns
         self.definition = definition
         self.relationtype = relationtype
-        self._create_statement = create_statement
-        self._drop_statement = drop_statement
+
+        self.constraints = od()
+        self.indexes = od()
 
     def __eq__(self, other):
         equalities = \
@@ -89,5 +149,8 @@ class InspectedSelectable(Inspected):
             self.schema == other.schema, \
             self.columns == other.columns, \
             self.inputs == other.inputs, \
-            self.definition == other.definition
+            self.definition == other.definition, \
+            self.constraints == other.constraints, \
+            self.indexes == other.indexes
+
         return all(equalities)

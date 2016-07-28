@@ -2,9 +2,9 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from ..inspector import DBInspector
-from ..inspected import ColumnInfo, Inspected
+from ..inspected import ColumnInfo, Inspected, TableRelated
 from ..inspected import InspectedSelectable as BaseInspectedSelectable
-from ..misc import resource_text, quoted_identifier
+from ..misc import resource_text
 from collections import OrderedDict as od
 from itertools import groupby
 
@@ -13,17 +13,26 @@ CREATE_TABLE = """create table {} (
 );
 """
 
+CREATE_FUNCTION_FORMAT = """create or replace function {signature}
+returns {result_string} as
+$${definition}$$
+language {language} {volatility} {strictness} {security_type};"""
+
+ALL_RELATIONS_QUERY = resource_text('relations.sql')
+INDEXES_QUERY = resource_text('indexes.sql')
+SEQUENCES_QUERY = resource_text('sequences.sql')
+CONSTRAINTS_QUERY = resource_text('constraints.sql')
+FUNCTIONS_QUERY = resource_text('functions.sql')
+EXTENSIONS_QUERY = resource_text('extensions.sql')
+
 
 class InspectedSelectable(BaseInspectedSelectable):
     @property
     def create_statement(self):
-        if self._create_statement:
-            return self._create_statement
-
         n = self.quoted_full_name
 
         if self.relationtype == 'r':
-            colspec = ',\n    '.join(c.creation_sql
+            colspec = ',\n    '.join(c.creation_clause
                                      for c in self.columns.values())
             create_statement = CREATE_TABLE.format(n, colspec)
         elif self.relationtype == 'v':
@@ -38,9 +47,6 @@ class InspectedSelectable(BaseInspectedSelectable):
 
     @property
     def drop_statement(self):
-        if self._drop_statement:
-            return self._drop_statement
-
         n = self.quoted_full_name
 
         if self.relationtype == 'r':
@@ -56,8 +62,72 @@ class InspectedSelectable(BaseInspectedSelectable):
             raise NotImplementedError  # pragma: no cover
         return drop_statement
 
+    def alter_table_statement(self, clause):
+        if self.relationtype == 'r':
+            alter = 'alter table {} {};'.format(self.quoted_full_name, clause)
+        else:
+            raise NotImplementedError  # pragma: no cover
+        return alter
 
-class InspectedIndex(Inspected):
+
+class InspectedFunction(InspectedSelectable):
+    def __init__(self,
+                 name,
+                 schema,
+                 columns,
+                 inputs,
+                 definition,
+                 volatility,
+                 strictness,
+                 security_type,
+                 identity_arguments,
+                 result_string,
+                 language):
+        self.identity_arguments = identity_arguments
+        self.result_string = result_string
+        self.language = language
+        self.volatility = volatility
+        self.strictness = strictness
+        self.security_type = security_type
+
+        super(InspectedFunction, self).__init__(
+            name=name,
+            schema=schema,
+            columns=columns,
+            inputs=inputs,
+            definition=definition,
+            relationtype='f')
+
+    @property
+    def signature(self):
+        return '{}({})'.format(self.quoted_full_name, self.identity_arguments)
+
+    @property
+    def create_statement(self):
+        return CREATE_FUNCTION_FORMAT.format(
+            signature=self.signature,
+            result_string=self.result_string,
+            definition=self.definition,
+            language=self.language,
+            volatility=self.volatility,
+            strictness=self.strictness,
+            security_type=self.security_type)
+
+    @property
+    def drop_statement(self):
+        return 'drop function if exists {} cascade;'.format(self.signature)
+
+    def __eq__(self, other):
+        return self.signature == other.signature \
+            and self.result_string == other.result_string \
+            and self.definition == other.definition \
+            and self.language == other.language \
+            and self.volatility == other.volatility \
+            and self.strictness == other.strictness \
+            and self.security_type == other.security_type
+
+
+class InspectedIndex(Inspected, TableRelated):
     def __init__(self, name, schema, table_name, definition=None):
         self.name = name
         self.schema = schema
@@ -66,7 +136,7 @@ class InspectedIndex(Inspected):
 
     @property
     def drop_statement(self):
-        return 'drop index {};'.format(self.quoted_full_name)
+        return 'drop index if exists {};'.format(self.quoted_full_name)
 
     @property
     def create_statement(self):
@@ -137,20 +207,15 @@ class InspectedExtension(Inspected):
         return all(equalities)
 
 
-class InspectedConstraint(Inspected):
+class InspectedConstraint(Inspected, TableRelated):
     def __init__(self, name, schema, constraint_type, table_name, definition,
-                 is_index):
+                 index):
         self.name = name
         self.schema = schema
         self.constraint_type = constraint_type
         self.table_name = table_name
         self.definition = definition
-        self.is_index = is_index
-
-    @property
-    def quoted_full_table_name(self):
-        return '{}.{}'.format(
-            quoted_identifier(self.schema), quoted_identifier(self.table_name))
+        self.index = index
 
     @property
     def drop_statement(self):
@@ -164,7 +229,7 @@ class InspectedConstraint(Inspected):
         USING = 'alter table {} add constraint {} {} using index {};'
         NOT_USING = 'alter table {} add constraint {} {};'
 
-        if self.is_index:
+        if self.index:
             return USING.format(self.quoted_full_table_name, self.quoted_name,
                                 self.constraint_type, self.quoted_name)
         else:
@@ -177,11 +242,26 @@ class InspectedConstraint(Inspected):
             self.schema == other.schema, \
             self.table_name == other.table_name, \
             self.definition == other.definition, \
-            self.is_index == other.is_index
+            self.index == other.index
         return all(equalities)
 
 
 class PostgreSQL(DBInspector):
+    def __init__(self, c, include_internal=False):
+        def processed(q):
+            if not include_internal:
+                q = q.replace('-- SKIP_INTERNAL', '')
+            return q
+
+        self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY)
+        self.INDEXES_QUERY = processed(INDEXES_QUERY)
+        self.SEQUENCES_QUERY = processed(SEQUENCES_QUERY)
+        self.CONSTRAINTS_QUERY = processed(CONSTRAINTS_QUERY)
+        self.FUNCTIONS_QUERY = processed(FUNCTIONS_QUERY)
+        self.EXTENSIONS_QUERY = processed(EXTENSIONS_QUERY)
+
+        super(PostgreSQL, self).__init__(c, include_internal)
+
     def load_all(self):
         self.load_all_relations()
         self.load_functions()
@@ -196,12 +276,9 @@ class PostgreSQL(DBInspector):
 
         q = self.c.execute(self.ALL_RELATIONS_QUERY)
 
-        for _, g in groupby(q, lambda x: (x.relationtype, x.fullname)):
+        for _, g in groupby(q, lambda x: (x.relationtype, x.schema, x.name)):
             clist = list(g)
-            name = clist[0].name
-            schema = clist[0].schema
-            relationtype = clist[0].relationtype
-            definition = clist[0].definition
+            f = clist[0]
 
             columns = [ColumnInfo(
                 name=c.attname,
@@ -212,18 +289,20 @@ class PostgreSQL(DBInspector):
                 not_null=c.not_null) for c in clist]
 
             s = InspectedSelectable(
-                name=name,
-                schema=schema,
+                name=f.name,
+                schema=f.schema,
                 columns=od((c.name, c) for c in columns),
-                relationtype=relationtype,
-                definition=definition)
+                relationtype=f.relationtype,
+                definition=f.definition)
 
-            if relationtype == 'r':
-                self.tables[s.quoted_full_name] = s
-            elif relationtype == 'v':
-                self.views[s.quoted_full_name] = s
-            elif relationtype == 'm':
-                self.materialized_views[s.quoted_full_name] = s
+            RELATIONTYPES = {
+                'r': 'tables',
+                'v': 'views',
+                'm': 'materialized_views'
+            }
+
+            att = getattr(self, RELATIONTYPES[f.relationtype])
+            att[s.quoted_full_name] = s
 
         self.relations = od()
 
@@ -260,7 +339,7 @@ class PostgreSQL(DBInspector):
                 constraint_type=i.constraint_type,
                 table_name=i.table_name,
                 definition=i.definition,
-                is_index=i.is_index) for i in q
+                index=i.index) for i in q
         ]
 
         self.constraints = od((i.quoted_full_name, i) for i in constraintlist)
@@ -275,24 +354,29 @@ class PostgreSQL(DBInspector):
         # extension names are unique per-database rather than per-schema like other things (even though extensions are assigned to a particular schema)
         self.extensions = od((i.name, i) for i in extensionlist)
 
+        # add indexes and constraints to each table
+        for each in self.indexes.values():
+            t = each.quoted_full_table_name
+            n = each.quoted_full_name
+            self.relations[t].indexes[n] = each
+
+        for each in self.constraints.values():
+            t = each.quoted_full_table_name
+            n = each.quoted_full_name
+            self.relations[t].constraints[n] = each
+
     def load_functions(self):
         self.functions = od()
 
         q = self.c.execute(self.FUNCTIONS_QUERY)
 
-        for _, g in groupby(q, lambda x: (x.db, x.schema, x.name)):
+        for _, g in groupby(q, lambda x: (x.schema, x.name)):
             clist = list(g)
-
-            name = clist[0].name
-            schema = clist[0].schema
-            returntype = clist[0].returntype
-            drop_statement = clist[0].drop_statement
-            create_statement = clist[0].create_statement
-            definition = clist[0].definition
+            f = clist[0]
 
             outs = [c for c in clist if c.parameter_mode == 'OUT']
 
-            if returntype == 'record':
+            if f.returntype == 'record':
                 columns = [ColumnInfo(
                     name=c.parameter_name,
                     dbtype=c.data_type,
@@ -300,8 +384,8 @@ class PostgreSQL(DBInspector):
             else:
                 columns = [ColumnInfo(
                     name=None,
-                    dbtype=returntype,
-                    pytype=self.to_pytype(returntype))]
+                    dbtype=f.returntype,
+                    pytype=self.to_pytype(f.returntype))]
 
             plist = [ColumnInfo(
                 name=c.parameter_name,
@@ -310,21 +394,17 @@ class PostgreSQL(DBInspector):
                 default=c.parameter_default)
                 for c in clist if c.parameter_mode == 'IN']
 
-            s = InspectedSelectable(
-                schema=schema,
-                name=name,
+            s = InspectedFunction(
+                schema=f.schema,
+                name=f.name,
                 columns=od((c.name, c) for c in columns),
                 inputs=plist,
-                drop_statement=drop_statement,
-                create_statement=create_statement,
-                relationtype='function',
-                definition=definition)
+                identity_arguments=f.identity_arguments,
+                result_string=f.result_string,
+                language=f.language,
+                definition=f.definition,
+                strictness=f.strictness,
+                security_type=f.security_type,
+                volatility=f.volatility)
 
             self.functions[s.quoted_full_name] = s
-
-    ALL_RELATIONS_QUERY = resource_text('relations.sql')
-    INDEXES_QUERY = resource_text('indexes.sql')
-    SEQUENCES_QUERY = resource_text('sequences.sql')
-    CONSTRAINTS_QUERY = resource_text('constraints.sql')
-    FUNCTIONS_QUERY = resource_text('functions.sql')
-    EXTENSIONS_QUERY = resource_text('extensions.sql')

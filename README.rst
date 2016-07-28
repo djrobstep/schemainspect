@@ -3,14 +3,14 @@ schemainspect: SQL Schema Inspection
 
 Schema inspection for PostgreSQL (and potentially others in the future).
 
-Inspects tables, views, materialized views, constraints, indexes, sequences and functions.
+Inspects tables, views, materialized views, constraints, indexes, sequences, functions, and extensions.
 
-**Limitations:** Function inspection only confirmed to work with SQL/PLPGSQL languages so far. Doesn't inspect function modifiers (IMMUTABLE/STABLE/VOLATILE, STRICT, RETURNS NULL ON NULL INPUT, etc).
+**Limitations:** Function inspection only confirmed to work with SQL/PLPGSQL languages so far.
 
 Basic Usage
 -----------
 
-Get an inspection object from an SQLAlchemy session or connection as follows:
+Get an inspection object from an already opened SQLAlchemy session or connection as follows:
 
 .. code-block:: python
 

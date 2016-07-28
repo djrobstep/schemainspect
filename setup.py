@@ -8,7 +8,8 @@ from setuptools.command.install import install as _install
 
 setup(
     name='schemainspect',
-    version='0.1.1469409161',
+    version='0.1.1469700903',
+    url='https://github.com/djrobstep/schemainspect',
     description='Schema inspection for PostgreSQL',
     long_description=io.open('README.rst').read(),
     author='Robert Lechte',

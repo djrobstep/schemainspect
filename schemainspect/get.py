@@ -8,6 +8,8 @@ def get_inspector(x):
     c = connection_from_s_or_c(x)
 
     try:
-        return SUPPORTED[c.dialect.name](c)
+        ic = SUPPORTED[c.dialect.name]
     except KeyError:
         raise NotImplementedError
+
+    return ic(c)

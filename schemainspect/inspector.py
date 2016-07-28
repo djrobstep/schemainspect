@@ -15,10 +15,11 @@ def to_pytype(sqla_dialect, typename):
 
 
 class DBInspector(object):
-    def __init__(self, c):
+    def __init__(self, c, include_internal=False):
         self.c = c
         self.engine = self.c.engine
         self.dialect = self.engine.dialect
+        self.include_internal = include_internal
         self.load_all()
 
     def to_pytype(self, typename):

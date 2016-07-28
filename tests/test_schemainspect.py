@@ -13,7 +13,7 @@ from copy import deepcopy
 from sqlbag import temporary_database, S, quoted_identifier
 
 import schemainspect
-from schemainspect import get_inspector
+from schemainspect import get_inspector, to_pytype
 from schemainspect.inspected import ColumnInfo
 from schemainspect.pg import InspectedIndex, InspectedSequence, InspectedConstraint, InspectedExtension
 
@@ -62,11 +62,10 @@ d2 = ColumnInfo('def_t', 'text', str, default='NULL::text')
 d3 = ColumnInfo('def_d', 'date', datetime.date, default="'2014-01-01'::date")
 FILMSF_INPUTS = [d1, d2, d3]
 
-FDEF = """create or replace function public.films_f(d date, def_t text, def_d date)
+FDEF = """create or replace function "public"."films_f"(d date, def_t text, def_d date)
 returns TABLE(title character varying, release_date date) as
 $$select 'a'::varchar, '2014-01-01'::date$$
-LANGUAGE SQL;
-"""
+language SQL VOLATILE CALLED ON NULL INPUT SECURITY INVOKER;"""
 
 VDEF = """create view "public"."v_films" as  SELECT films.code,
     films.title,
@@ -93,14 +92,36 @@ def test_basic_schemainspect():
     a = ColumnInfo('a', 'text', str)
     a2 = ColumnInfo('a', 'text', str)
 
-    b = ColumnInfo('b', 'text', str, dbtypestr='text')
-    b2 = ColumnInfo('b', 'text', str, dbtypestr='text', default="'d'::text")
+    b = ColumnInfo('b', 'varchar', str, dbtypestr='varchar(10)')
+    b2 = ColumnInfo(
+        'b',
+        'text',
+        str,
+        dbtypestr='text',
+        default="'d'::text",
+        not_null=True)
 
     assert a == a2
-    assert hash(a) == hash(a)
-    assert hash(a) != hash(b)
+    assert a == a
     assert a != b
     assert b != b2
+
+    alter = b2.alter_table_statements(b, 't')
+
+    assert alter == [
+        'alter table t alter column "b" set not null;',
+        'alter table t alter column "b" set default \'d\'::text;',
+        'alter table t alter column "b" set data type text;']
+
+    alter = b.alter_table_statements(b2, 't')
+
+    assert alter == [
+        'alter table t alter column "b" drop not null;',
+        'alter table t alter column "b" drop default;',
+        'alter table t alter column "b" set data type varchar(10);']
+
+    b.add_column_clause == 'add column "b"'
+    b.drop_column_clause == 'drop column "b"'
 
     with temporary_database('sqlite') as dburl:
         with raises(NotImplementedError):
@@ -116,10 +137,10 @@ def test_inspected():
     assert x.unquoted_full_name == 'a.b'
 
     x = schemainspect.ColumnInfo(name='a', dbtype='integer', pytype=int)
-    assert x.creation_sql == '"a" integer'
+    assert x.creation_clause == '"a" integer'
     x.default = "5"
     x.not_null = True
-    assert x.creation_sql == '"a" integer not null default 5'
+    assert x.creation_clause == '"a" integer not null default 5'
 
 
 def test_postgres_objects():
@@ -136,7 +157,7 @@ def test_postgres_objects():
     assert ex != ex2
 
     ix = InspectedIndex('name', 'schema', 'table', 'create index name on t(x)')
-    assert ix.drop_statement == 'drop index "schema"."name";'
+    assert ix.drop_statement == 'drop index if exists "schema"."name";'
     assert ix.create_statement == \
         'create index name on t(x);'
 
@@ -156,7 +177,7 @@ def test_postgres_objects():
     c = InspectedConstraint(
         constraint_type='PRIMARY KEY',
         definition='PRIMARY KEY (code)',
-        is_index=True,
+        index='firstkey',
         name='firstkey',
         schema='public',
         table_name='films')
@@ -166,7 +187,7 @@ def test_postgres_objects():
 
     c2 = deepcopy(c)
     assert c == c2
-    c.is_index = False
+    c.index = None
     assert c != c2
     assert c.create_statement == 'alter table "public"."films" add constraint "firstkey" PRIMARY KEY (code);'
     assert c.drop_statement == 'alter table "public"."films" drop constraint "firstkey";'
@@ -216,10 +237,17 @@ def setup_pg_schema(s):
 
     s.execute("""
             create index on films(title);
-        """)
+    """)
+
+    s.execute("""
+            create index on mv_films(title);
+    """)
 
 
 def asserts_pg(i):
+    assert to_pytype(i.dialect, 'integer') == int
+    assert to_pytype(i.dialect, 'nonexistent') == type(None)
+
     def n(name, schema='public'):
         return '{}.{}'.format(
             quoted_identifier(schema), quoted_identifier(name))
@@ -247,12 +275,18 @@ def asserts_pg(i):
     assert mv.drop_statement == \
         'drop materialized view if exists {} cascade;'.format(mv_films)
 
+    assert n('mv_films_title_idx') in mv.indexes
+
     films_f = n('films_f')
     inc_f = n('inc_f')
     public_funcs = \
         [k for k, v in i.functions.items() if v.schema == 'public']
     assert public_funcs == [films_f, inc_f]
     f = i.functions[films_f]
+    f2 = i.functions[inc_f]
+
+    assert f == f
+    assert f != f2
 
     assert f.columns == FILMSF_COLUMNS
 
@@ -262,7 +296,7 @@ def asserts_pg(i):
     assert fdef == "select 'a'::varchar, '2014-01-01'::date"
     assert f.create_statement == FDEF
     assert f.drop_statement == \
-        'drop function if exists public.films_f(d date, def_t text, def_d date) cascade;'
+        'drop function if exists "public"."films_f"(d date, def_t text, def_d date) cascade;'
 
     assert [e.quoted_full_name for e in i.extensions.values()] == \
         [n('plpgsql', schema='pg_catalog'), n('pg_trgm')]
@@ -274,6 +308,9 @@ def asserts_pg(i):
     t = i.tables[t_films]
     assert t.create_statement == T_CREATE
     assert t.drop_statement == 'drop table {};'.format(t_films)
+    assert t.alter_table_statement('x') == 'alter table {} x;'.format(t_films)
+
+    assert n('films_title_idx') in t.indexes
 
 
 def test_postgres_inspect(db):
