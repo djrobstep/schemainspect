@@ -5,7 +5,25 @@ with extension_oids as (
       pg_depend d
   WHERE
       d.refclassid = 'pg_extension'::regclass
-), r as (
+), enums as (
+
+  SELECT
+    t.oid as enum_oid,
+    n.nspname as "schema",
+    pg_catalog.format_type(t.oid, NULL) AS "name"
+  FROM pg_catalog.pg_type t
+       LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+       left outer join extension_oids e
+         on t.oid = e.objid
+  WHERE
+    t.typcategory = 'E'
+    and e.objid is null
+    -- SKIP_INTERNAL and n.nspname not in ('pg_catalog', 'information_schema')
+    AND pg_catalog.pg_type_is_visible(t.oid)
+  ORDER BY 1, 2
+),
+
+r as (
     select
         c.relname as name,
         n.nspname as schema,
@@ -21,7 +39,7 @@ with extension_oids as (
           ON n.oid = c.relnamespace
         left outer join extension_oids e
           on c.oid = e.objid
-    where c.relkind in ('r', 'v', 'm')
+    where c.relkind in ('r', 'v', 'm', 'c')
     -- SKIP_INTERNAL and e.objid is null
     -- SKIP_INTERNAL and n.nspname not in ('pg_catalog', 'information_schema')
 )
@@ -36,7 +54,10 @@ select
     a.atttypid::regtype AS datatype,
     ad.adsrc as defaultdef,
     r.oid as oid,
-    format_type(atttypid, atttypmod) AS datatypestring
+    format_type(atttypid, atttypmod) AS datatypestring,
+    e.enum_oid is not null as is_enum,
+    e.name as enum_name,
+    e.schema as enum_schema
 FROM
     r
     inner join pg_catalog.pg_attribute a
@@ -44,7 +65,9 @@ FROM
     left join pg_catalog.pg_attrdef ad
         on a.attrelid = ad.adrelid
         and a.attnum = ad.adnum
+    left join enums e
+      on a.atttypid = e.enum_oid
 where a.attnum > 0
--- SKIP_INTERNAL and schema not in ('pg_catalog', 'information_schema')
+-- SKIP_INTERNAL and r.schema not in ('pg_catalog', 'information_schema')
 AND    NOT a.attisdropped  -- no dead columns
 order by relationtype, r.schema, r.name, position_number;

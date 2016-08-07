@@ -45,4 +45,4 @@ from
     where true
   -- SKIP_INTERNAL and nspname not in ('pg_catalog', 'information_schema')
   -- SKIP_INTERNAL and e.objid is null
-;
+order by 1, 3, 2;

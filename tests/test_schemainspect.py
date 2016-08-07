@@ -15,7 +15,7 @@ from sqlbag import temporary_database, S, quoted_identifier
 import schemainspect
 from schemainspect import get_inspector, to_pytype
 from schemainspect.inspected import ColumnInfo
-from schemainspect.pg import InspectedIndex, InspectedSequence, InspectedConstraint, InspectedExtension
+from schemainspect.pg import InspectedIndex, InspectedSequence, InspectedConstraint, InspectedExtension, InspectedEnum
 
 from common import db  # flake8: noqa
 
@@ -168,11 +168,40 @@ def test_postgres_objects():
 
     i = InspectedSequence('name', 'schema')
     assert i.create_statement == 'create sequence "schema"."name";'
-    assert i.drop_statement == 'drop sequence "schema"."name";'
+    assert i.drop_statement == 'drop sequence if exists "schema"."name";'
     i2 = deepcopy(i)
     assert i == i2
     i2.schema = 'schema2'
     assert i != i2
+
+    i = InspectedEnum('name', 'schema', ['a', 'b', 'c'])
+    assert i.create_statement == "create type \"schema\".\"name\" as enum ('a', 'b', 'c');"
+    assert i.drop_statement == 'drop type "schema"."name";'
+    i2 = InspectedEnum('name', 'schema', ['a', 'a1', 'c', 'd'])
+    assert i.can_be_changed_to(i)
+    assert i != i2
+    assert not i.can_be_changed_to(i2)
+    i2.elements = ['a', 'b']
+    assert i2.can_be_changed_to(i)
+    i2.elements = ['b', 'a']
+    assert not i2.can_be_changed_to(i)
+    i2.elements = ['a', 'b', 'c']
+    assert i2.can_be_changed_to(i)
+    assert i.can_be_changed_to(i2)
+
+    i2.elements = ['a', 'a1', 'c', 'd', 'b']
+    assert not i.can_be_changed_to(i2)
+
+    with raises(ValueError):
+        i.change_statements(i2)
+
+    i2.elements = ['a0', 'a', 'a1', 'b', 'c', 'd']
+    assert i.can_be_changed_to(i2)
+
+    assert i.change_statements(i2) == [
+        "alter type \"schema\".\"name\" add value 'a0' before 'a'",
+        "alter type \"schema\".\"name\" add value 'a1' after 'a'",
+        "alter type \"schema\".\"name\" add value 'd' after 'c'"]
 
     c = InspectedConstraint(
         constraint_type='PRIMARY KEY',
@@ -241,6 +270,18 @@ def setup_pg_schema(s):
 
     s.execute("""
             create index on mv_films(title);
+    """)
+
+    s.execute("""
+            create type ttt as (a int, b text);
+    """)
+
+    s.execute("""
+            create type abc as enum ('a', 'b', 'c');
+    """)
+
+    s.execute("""
+            create table t_abc (id serial, x abc);
     """)
 
 
@@ -312,9 +353,32 @@ def asserts_pg(i):
 
     assert n('films_title_idx') in t.indexes
 
+    ct = i.composite_types[n('ttt')]
+    assert [(x.name, x.dbtype) for x in ct.columns.values()] == \
+        [('a', 'integer'), ('b', 'text')]
+    assert ct.create_statement == \
+        'create type "public"."ttt" as ("a" integer, "b" text);'
+    assert ct.drop_statement == \
+        'drop type "public"."ttt";'
+    assert i.enums[n('abc')].elements == ['a', 'b', 'c']
+
+    x = i.tables[n('t_abc')].columns['x']
+    assert x.is_enum
+    assert x.change_enum_to_string_statement('t') == \
+        'alter table t alter column "x" set data type varchar;'
+    assert x.change_string_to_enum_statement('t') == \
+        'alter table t alter column "x" set data type abc using "x"::abc;'
+
+    tid = i.tables[n('t_abc')].columns['id']
+    with raises(ValueError):
+        tid.change_enum_to_string_statement('t')
+
+    with raises(ValueError):
+        tid.change_string_to_enum_statement('t')
 
 def test_postgres_inspect(db):
     with S(db) as s:
         setup_pg_schema(s)
         i = get_inspector(s)
         asserts_pg(i)
+        assert i == i == get_inspector(s)

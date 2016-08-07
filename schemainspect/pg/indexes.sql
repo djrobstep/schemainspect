@@ -20,4 +20,4 @@ with extension_oids as (
  WHERE c.relkind in ('r', 'm') AND i.relkind in ('i')
       -- SKIP_INTERNAL and nspname not in ('pg_catalog','information_schema')
       -- SKIP_INTERNAL and e.objid is null
-;
+order by 1, 2, 3;

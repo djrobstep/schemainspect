@@ -3,7 +3,7 @@ schemainspect: SQL Schema Inspection
 
 Schema inspection for PostgreSQL (and potentially others in the future).
 
-Inspects tables, views, materialized views, constraints, indexes, sequences, functions, and extensions.
+Inspects tables, views, materialized views, constraints, indexes, sequences, enums, functions, and extensions.
 
 **Limitations:** Function inspection only confirmed to work with SQL/PLPGSQL languages so far.
 
@@ -20,7 +20,7 @@ Get an inspection object from an already opened SQLAlchemy session or connection
     with S('postgresql:///example') as s:
         i = get_inspector(s)
 
-The inspection object has attributes for tables, views, and all the things it tracks. At each of these attributes you'll find a dictionary (OrderedDict) mapping from fully-qualified-name-of-thing-in-database to information object.
+The inspection object has attributes for tables, views, and all the other things it tracks. At each of these attributes you'll find a dictionary (OrderedDict) mapping from fully-qualified-and-quoted-name-of-thing-in-database to information object.
 
 For instance, the information about a table *books* would be accessed as follows:
 

@@ -39,6 +39,8 @@ class ColumnInfo(AutoRepr):
                  pytype,
                  default=None,
                  not_null=False,
+                 is_enum=False,
+                 enum=None,
                  dbtypestr=None):
 
         self.name = name or ''
@@ -47,6 +49,8 @@ class ColumnInfo(AutoRepr):
         self.pytype = pytype
         self.default = default or None
         self.not_null = not_null
+        self.is_enum = is_enum
+        self.enum = enum
 
     def __eq__(self, other):
         return self.name == other.name \
@@ -54,7 +58,8 @@ class ColumnInfo(AutoRepr):
             and self.dbtypestr == other.dbtypestr \
             and self.pytype == other.pytype \
             and self.default == other.default \
-            and self.not_null == other.not_null
+            and self.not_null == other.not_null \
+            and self.enum == other.enum
 
     def alter_clauses(self, other):
         clauses = []
@@ -65,8 +70,26 @@ class ColumnInfo(AutoRepr):
             clauses.append(self.alter_default_clause)
         if self.dbtypestr != other.dbtypestr:
             clauses.append(self.alter_data_type_clause)
-
         return clauses
+
+    def change_enum_to_string_statement(self, table_name):
+        if self.is_enum:
+            return 'alter table {} alter column {} set data type varchar;'.format(
+                table_name,
+                self.quoted_name)
+        else:
+            raise ValueError
+
+    def change_string_to_enum_statement(self, table_name):
+        if self.is_enum:
+            return 'alter table {} alter column {} set data type {} using {}::{};'.format(
+                table_name,
+                self.quoted_name,
+                self.dbtypestr,
+                self.quoted_name,
+                self.dbtypestr)
+        else:
+            raise ValueError
 
     def alter_table_statements(self, other, table_name):
         prefix = 'alter table {}'.format(table_name)
@@ -143,7 +166,7 @@ class InspectedSelectable(Inspected):
         self.indexes = od()
 
     def __eq__(self, other):
-        equalities = \
+        equalities = type(self) == type(other), \
             self.relationtype == other.relationtype, \
             self.name == other.name, \
             self.schema == other.schema, \

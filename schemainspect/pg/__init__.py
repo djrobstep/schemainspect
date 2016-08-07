@@ -4,7 +4,7 @@ from __future__ import (absolute_import, division, print_function,
 from ..inspector import DBInspector
 from ..inspected import ColumnInfo, Inspected, TableRelated
 from ..inspected import InspectedSelectable as BaseInspectedSelectable
-from ..misc import resource_text
+from ..misc import resource_text, quoted_identifier
 from collections import OrderedDict as od
 from itertools import groupby
 
@@ -24,6 +24,7 @@ SEQUENCES_QUERY = resource_text('sequences.sql')
 CONSTRAINTS_QUERY = resource_text('constraints.sql')
 FUNCTIONS_QUERY = resource_text('functions.sql')
 EXTENSIONS_QUERY = resource_text('extensions.sql')
+ENUMS_QUERY = resource_text('enums.sql')
 
 
 class InspectedSelectable(BaseInspectedSelectable):
@@ -41,6 +42,11 @@ class InspectedSelectable(BaseInspectedSelectable):
         elif self.relationtype == 'm':
             create_statement = 'create materialized view {} as {}\n'.format(
                 n, self.definition)
+        elif self.relationtype == 'c':
+            colspec = ', '.join(c.creation_clause
+                                for c in self.columns.values())
+            create_statement = 'create type {} as ({});'.format(
+                n, colspec)
         else:
             raise NotImplementedError  # pragma: no cover
         return create_statement
@@ -58,6 +64,9 @@ class InspectedSelectable(BaseInspectedSelectable):
         elif self.relationtype == 'm':
             drop_statement = \
                 'drop materialized view if exists {} cascade;'.format(n)
+        elif self.relationtype == 'c':
+            drop_statement = \
+                'drop type {};'.format(n)
         else:
             raise NotImplementedError  # pragma: no cover
         return drop_statement
@@ -158,7 +167,7 @@ class InspectedSequence(Inspected):
 
     @property
     def drop_statement(self):
-        return 'drop sequence {};'.format(self.quoted_full_name)
+        return 'drop sequence if exists {};'.format(self.quoted_full_name)
 
     @property
     def create_statement(self):
@@ -168,6 +177,62 @@ class InspectedSequence(Inspected):
         equalities = \
             self.name == other.name, \
             self.schema == other.schema
+        return all(equalities)
+
+
+class InspectedEnum(Inspected):
+    def __init__(self, name, schema, elements):
+        self.name = name
+        self.schema = schema
+        self.elements = elements
+
+    @property
+    def drop_statement(self):
+        return 'drop type {};'.format(self.quoted_full_name)
+
+    @property
+    def create_statement(self):
+        return 'create type {} as enum ({});'.format(
+            self.quoted_full_name, self.quoted_elements)
+
+    @property
+    def quoted_elements(self):
+        quoted = ["'{}'".format(e) for e in self.elements]
+        return ', '.join(quoted)
+
+    def change_statements(self, new):
+        if not self.can_be_changed_to(new):
+            raise ValueError
+
+        new = new.elements
+        old = self.elements
+
+        statements = []
+
+        previous = None
+
+        for c in new:
+            if c not in old:
+                if not previous:
+                    s = "alter type {} add value '{}' before '{}'".format(
+                        self.quoted_full_name, c, old[0])
+                else:
+                    s = "alter type {} add value '{}' after '{}'".format(
+                        self.quoted_full_name, c, previous)
+                statements.append(s)
+            previous = c
+        return statements
+
+    def can_be_changed_to(self, new):
+        old = self.elements
+        # new must already have the existing items from old, in the same order
+        return [e for e in new.elements if e in old] == old
+
+    def __eq__(self, other):
+        equalities = \
+            self.name == other.name, \
+            self.schema == other.schema, \
+            self.elements == other.elements
         return all(equalities)
 
 
@@ -259,6 +324,7 @@ class PostgreSQL(DBInspector):
         self.CONSTRAINTS_QUERY = processed(CONSTRAINTS_QUERY)
         self.FUNCTIONS_QUERY = processed(FUNCTIONS_QUERY)
         self.EXTENSIONS_QUERY = processed(EXTENSIONS_QUERY)
+        self.ENUMS_QUERY = processed(ENUMS_QUERY)
 
         super(PostgreSQL, self).__init__(c, include_internal)
 
@@ -273,6 +339,16 @@ class PostgreSQL(DBInspector):
         self.tables = od()
         self.views = od()
         self.materialized_views = od()
+        self.composite_types = od()
+
+        q = self.c.execute(self.ENUMS_QUERY)
+
+        enumlist = [
+            InspectedEnum(
+                name=i.name, schema=i.schema, elements=i.elements) for i in q
+        ]
+
+        self.enums = od((i.quoted_full_name, i) for i in enumlist)
 
         q = self.c.execute(self.ALL_RELATIONS_QUERY)
 
@@ -280,13 +356,22 @@ class PostgreSQL(DBInspector):
             clist = list(g)
             f = clist[0]
 
+            def get_enum(name, schema):
+                if not name and not schema:
+                    return None
+
+                quoted_full_name = '{}.{}'.format(quoted_identifier(schema), quoted_identifier(name))
+                return self.enums[quoted_full_name]
+
             columns = [ColumnInfo(
                 name=c.attname,
                 dbtype=c.datatype,
                 dbtypestr=c.datatypestring,
                 pytype=self.to_pytype(c.datatype),
                 default=c.defaultdef,
-                not_null=c.not_null) for c in clist]
+                not_null=c.not_null,
+                is_enum=c.is_enum,
+                enum=get_enum(c.enum_name, c.enum_schema)) for c in clist]
 
             s = InspectedSelectable(
                 name=f.name,
@@ -298,7 +383,8 @@ class PostgreSQL(DBInspector):
             RELATIONTYPES = {
                 'r': 'tables',
                 'v': 'views',
-                'm': 'materialized_views'
+                'm': 'materialized_views',
+                'c': 'composite_types'
             }
 
             att = getattr(self, RELATIONTYPES[f.relationtype])
@@ -408,3 +494,12 @@ class PostgreSQL(DBInspector):
                 volatility=f.volatility)
 
             self.functions[s.quoted_full_name] = s
+
+    def __eq__(self, other):
+        return type(self) == type(other) \
+            and self.relations == other.relations \
+            and self.sequences == other.sequences \
+            and self.enums == other.enums \
+            and self.constraints == other.constraints \
+            and self.extensions == other.extensions \
+            and self.functions == other.functions
