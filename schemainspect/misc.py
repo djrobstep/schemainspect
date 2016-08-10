@@ -44,4 +44,5 @@ def resource_stream(subpath):
 
 
 def resource_text(subpath):
-    return resource_stream(subpath).read().decode('utf-8')
+    with resource_stream(subpath) as f:
+        return f.read().decode('utf-8')
