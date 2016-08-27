@@ -63,7 +63,7 @@ with r1 as (
         from r1
         left outer join pgproc pp
           on r1.schema = pp.schema
-          and r1.name = pp.name
+          and r1.specific_name = pp.name || '_' || pp.oid
         left outer join extension_oids e
           on pp.oid = e.objid
         -- SKIP_INTERNAL where e.objid is null
@@ -79,6 +79,7 @@ with r1 as (
             p.parameter_default as parameter_default,
             p.ordinal_position as position_number,
             r.definition as definition,
+            pg_get_functiondef(oid) as full_definition,
             r.external_language as language,
             r.strictness as strictness,
             r.security_type as security_type,

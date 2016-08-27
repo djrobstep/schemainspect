@@ -456,21 +456,26 @@ class PostgreSQL(DBInspector):
 
         q = self.c.execute(self.FUNCTIONS_QUERY)
 
-        for _, g in groupby(q, lambda x: (x.schema, x.name)):
+        for _, g in groupby(q, lambda x: (x.schema, x.name, x.identity_arguments)):
             clist = list(g)
             f = clist[0]
 
             outs = [c for c in clist if c.parameter_mode == 'OUT']
 
-            if f.returntype == 'record':
+            columns = [ColumnInfo(
+                name=c.parameter_name,
+                dbtype=c.data_type,
+                pytype=self.to_pytype(c.data_type)) for c in outs]
+
+            if outs:
                 columns = [ColumnInfo(
                     name=c.parameter_name,
                     dbtype=c.data_type,
                     pytype=self.to_pytype(c.data_type)) for c in outs]
             else:
                 columns = [ColumnInfo(
-                    name=None,
-                    dbtype=f.returntype,
+                    name=f.parameter_name,
+                    dbtype=f.data_type,
                     pytype=self.to_pytype(f.returntype))]
 
             plist = [ColumnInfo(
@@ -493,7 +498,8 @@ class PostgreSQL(DBInspector):
                 security_type=f.security_type,
                 volatility=f.volatility)
 
-            self.functions[s.quoted_full_name] = s
+            identity_arguments = '({})'.format(s.identity_arguments)
+            self.functions[s.quoted_full_name + identity_arguments] = s
 
     def __eq__(self, other):
         return type(self) == type(other) \
