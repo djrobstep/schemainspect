@@ -1,6 +1,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from collections import OrderedDict as od
+
 
 def to_pytype(sqla_dialect, typename):
     try:
@@ -24,3 +26,11 @@ class DBInspector(object):
 
     def to_pytype(self, typename):
         return to_pytype(self.dialect, typename)
+
+
+class NullInspector(DBInspector):
+    def __init__(self):
+        pass
+
+    def __getattr__(self, name):
+        return od()

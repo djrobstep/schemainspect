@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from collections import OrderedDict
+from collections import OrderedDict as od
 
 import datetime
 from pytest import raises
@@ -13,7 +13,7 @@ from copy import deepcopy
 from sqlbag import temporary_database, S, quoted_identifier
 
 import schemainspect
-from schemainspect import get_inspector, to_pytype
+from schemainspect import get_inspector, NullInspector, to_pytype
 from schemainspect.inspected import ColumnInfo
 from schemainspect.pg import InspectedIndex, InspectedSequence, InspectedConstraint, InspectedExtension, InspectedEnum
 
@@ -41,7 +41,7 @@ PGRANGE = sqlalchemy.dialects.postgresql.ranges.DATERANGE
 TD = datetime.timedelta
 
 
-FILMS_COLUMNS = OrderedDict([
+FILMS_COLUMNS = od([
     ('code', ColumnInfo(
         'code', 'character', str, dbtypestr='character(5)')),
     ('title', ColumnInfo('title', 'character varying', str)),
@@ -52,7 +52,7 @@ FILMS_COLUMNS = OrderedDict([
     (u'drange', ColumnInfo('drange', 'daterange', PGRANGE))
 ])
 
-FILMSF_COLUMNS = OrderedDict([
+FILMSF_COLUMNS = od([
     ('title', ColumnInfo('title', 'character varying', str)),
     ('release_date', ColumnInfo('release_date', 'date', datetime.date))
 ])
@@ -392,3 +392,7 @@ def test_postgres_inspect(db):
         i = get_inspector(s)
         asserts_pg(i)
         assert i == i == get_inspector(s)
+
+def test_empty():
+    x = NullInspector()
+    assert x.tables == od()

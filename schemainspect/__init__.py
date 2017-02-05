@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from .inspector import DBInspector, to_pytype
+from .inspector import DBInspector, NullInspector, to_pytype
 from .inspected import ColumnInfo, Inspected
 from .get import get_inspector
 
@@ -13,5 +13,6 @@ __all__ = [
     'ColumnInfo',
     'Inspected',
     'get_inspector',
-    'pg'
+    'pg',
+    'NullInspector'
 ]
