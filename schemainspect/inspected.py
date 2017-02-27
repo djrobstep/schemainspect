@@ -110,9 +110,7 @@ class ColumnInfo(AutoRepr):
 
     @property
     def add_column_clause(self):
-        return 'add column {k} {dtype}'.format(
-            k=self.quoted_name,
-            dtype=self.dbtypestr)
+        return 'add column {}'.format(self.creation_clause)
 
     @property
     def drop_column_clause(self):
