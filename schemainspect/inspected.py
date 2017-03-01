@@ -64,12 +64,15 @@ class ColumnInfo(AutoRepr):
     def alter_clauses(self, other):
         clauses = []
 
-        if self.not_null != other.not_null:
-            clauses.append(self.alter_not_null_clause)
         if self.default != other.default:
             clauses.append(self.alter_default_clause)
+
+        if self.not_null != other.not_null:
+            clauses.append(self.alter_not_null_clause)
+
         if self.dbtypestr != other.dbtypestr:
             clauses.append(self.alter_data_type_clause)
+
         return clauses
 
     def change_enum_to_string_statement(self, table_name):
