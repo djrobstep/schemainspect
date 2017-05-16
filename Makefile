@@ -6,17 +6,8 @@ tmessy = -svv
 targs = --cov-report term-missing --cov schemainspect
 
 pip:
-	pip install -r requirements-dev.txt
-
-pipupgrade:
 	pip install --upgrade pip
-	pip install --upgrade -r requirements-dev.txt
-
-pipreqs:
-	pip install -r requirements.txt
-
-pipeditable:
-	pip install -e .
+	pip install --upgrade -r requirements.txt
 
 tox:
 	tox tests
@@ -45,10 +36,6 @@ tidy: clean lint
 
 all: clean lint tox
 
-testpublish:
-	python setup.py register -r https://testpypi.python.org/pypi
-	python setup.py sdist bdist_wheel --universal upload -r https://testpypi.python.org/pypi
-
 publish:
-	python setup.py register
-	python setup.py sdist bdist_wheel --universal upload
+	python setup.py sdist bdist_wheel --universal
+	twine upload dist/*

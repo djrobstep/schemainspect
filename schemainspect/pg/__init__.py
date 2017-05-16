@@ -5,7 +5,7 @@ from ..inspector import DBInspector
 from ..inspected import ColumnInfo, Inspected, TableRelated
 from ..inspected import InspectedSelectable as BaseInspectedSelectable
 from ..misc import resource_text, quoted_identifier
-from collections import OrderedDict as od
+from collections import OrderedDict as od, defaultdict
 from itertools import groupby
 
 CREATE_TABLE = """create table {} (
@@ -378,7 +378,14 @@ class PostgreSQL(DBInspector):
                 schema=f.schema,
                 columns=od((c.name, c) for c in columns),
                 relationtype=f.relationtype,
-                definition=f.definition)
+                definition=f.definition,
+                dependent_on=[
+                    quoted_identifier(b, schema=a)
+                    for a, b
+                    in f.dependent_on
+                ],
+                dependents=[]
+            )
 
             RELATIONTYPES = {
                 'r': 'tables',
@@ -394,6 +401,17 @@ class PostgreSQL(DBInspector):
 
         for x in (self.tables, self.views, self.materialized_views):
             self.relations.update(x)
+
+        dependents = defaultdict(list)
+
+        for k, v in self.relations.items():
+            for dv in v.dependent_on:
+                dependents[dv].append(v.quoted_full_name)
+
+        for k, v in self.relations.items():
+            if k in dependents:
+                dependents[k].sort()
+                v.dependents = dependents[k]
 
         q = self.c.execute(self.INDEXES_QUERY)
 

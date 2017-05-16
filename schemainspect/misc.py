@@ -28,8 +28,11 @@ class AutoRepr(object):  # pragma: no cover
         return not self == other
 
 
-def quoted_identifier(identifier):
-    return '"{}"'.format(identifier.replace('"', '""'))
+def quoted_identifier(identifier, schema=None):
+    s = '"{}"'.format(identifier.replace('"', '""'))
+    if schema:
+        s = '"{}".{}'.format(schema.replace('"', '""'), s)
+    return s
 
 
 def external_caller():

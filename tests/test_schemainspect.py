@@ -10,7 +10,9 @@ import sqlalchemy.dialects.postgresql
 import six
 from copy import deepcopy
 
-from sqlbag import temporary_database, S, quoted_identifier
+from sqlbag import temporary_database, S
+
+from schemainspect.misc import quoted_identifier
 
 import schemainspect
 from schemainspect import get_inspector, NullInspector, to_pytype
@@ -239,6 +241,8 @@ def setup_pg_schema(s):
 
     s.execute("""CREATE VIEW v_films AS (select * from films)""")
 
+    s.execute("""CREATE VIEW v_films2 AS (select * from v_films)""")
+
     s.execute("""
             CREATE MATERIALIZED VIEW mv_films
             AS (select * from films)
@@ -296,23 +300,38 @@ def asserts_pg(i):
     assert to_pytype(i.dialect, 'nonexistent') == type(None)
 
     def n(name, schema='public'):
-        return '{}.{}'.format(
-            quoted_identifier(schema), quoted_identifier(name))
+        return quoted_identifier(name, schema=schema)
 
     assert i.dialect.name == 'postgresql'
 
+    films = n('films')
     v_films = n('v_films')
+    v_films2 = n('v_films2')
+
     v = i.views[v_films]
 
     public_views = {k: v for k, v in i.views.items() if v.schema == 'public'}
 
-    assert list(public_views.keys()) == [v_films]
+    assert list(public_views.keys()) == [v_films, v_films2]
     assert v.columns == FILMS_COLUMNS
     assert v.create_statement == VDEF
     assert v == v
     assert v == deepcopy(v)
     assert v.drop_statement == \
         'drop view if exists {} cascade;'.format(v_films)
+
+    v = i.views[v_films]
+    assert v.dependent_on == [films]
+
+    v = i.views[v_films2]
+    assert v.dependent_on == [v_films]
+
+    for k, r in i.relations.items():
+        for dependent in r.dependents:
+            assert k in i.relations[dependent].dependent_on
+
+        for dependency in r.dependent_on:
+            assert k in i.relations[dependency].dependents
 
     mv_films = n('mv_films')
     mv = i.materialized_views[mv_films]
@@ -396,3 +415,6 @@ def test_postgres_inspect(db):
 def test_empty():
     x = NullInspector()
     assert x.tables == od()
+    assert x.relations == od()
+
+    assert type(schemainspect.get_inspector(None)) == NullInspector

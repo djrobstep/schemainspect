@@ -155,6 +155,8 @@ class InspectedSelectable(Inspected):
                  columns,
                  inputs=None,
                  definition=None,
+                 dependent_on=None,
+                 dependents=None,
                  relationtype='unknown'):
         self.name = name
         self.schema = schema
@@ -162,6 +164,8 @@ class InspectedSelectable(Inspected):
         self.columns = columns
         self.definition = definition
         self.relationtype = relationtype
+        self.dependent_on = dependent_on or []
+        self.dependents = dependents or []
 
         self.constraints = od()
         self.indexes = od()
@@ -173,8 +177,6 @@ class InspectedSelectable(Inspected):
             self.schema == other.schema, \
             self.columns == other.columns, \
             self.inputs == other.inputs, \
-            self.definition == other.definition, \
-            self.constraints == other.constraints, \
-            self.indexes == other.indexes
+            self.definition == other.definition
 
         return all(equalities)

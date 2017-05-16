@@ -8,6 +8,7 @@ SUPPORTED = {'postgresql': PostgreSQL}
 def get_inspector(x):
     if x is None:
         return NullInspector()
+
     c = connection_from_s_or_c(x)
 
     try:

@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='schemainspect',
-    version='0.1.1488410765',
+    version='0.1.1494928171',
     url='https://github.com/djrobstep/schemainspect',
     description='Schema inspection for PostgreSQL',
     long_description=io.open('README.rst').read(),
