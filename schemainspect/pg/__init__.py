@@ -492,7 +492,7 @@ class PostgreSQL(DBInspector):
                     pytype=self.to_pytype(c.data_type)) for c in outs]
             else:
                 columns = [ColumnInfo(
-                    name=f.parameter_name,
+                    name=f.name,
                     dbtype=f.data_type,
                     pytype=self.to_pytype(f.returntype))]
 

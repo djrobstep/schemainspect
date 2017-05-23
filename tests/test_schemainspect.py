@@ -359,7 +359,7 @@ def asserts_pg(i):
     assert f.columns == FILMSF_COLUMNS
 
     assert f.inputs == FILMSF_INPUTS
-    assert list(f2.columns.values())[0].name == ''
+    assert list(f2.columns.values())[0].name == 'inc_f'
     assert list(f3.columns.values())[0].name == 'outparam'
 
     fdef = i.functions[films_f].definition
