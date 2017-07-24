@@ -5,7 +5,7 @@ from ..inspector import DBInspector
 from ..inspected import ColumnInfo, Inspected, TableRelated
 from ..inspected import InspectedSelectable as BaseInspectedSelectable
 from ..misc import resource_text, quoted_identifier
-from collections import OrderedDict as od, defaultdict
+from collections import OrderedDict as od
 from itertools import groupby
 
 CREATE_TABLE = """create table {} (
@@ -25,6 +25,7 @@ CONSTRAINTS_QUERY = resource_text('constraints.sql')
 FUNCTIONS_QUERY = resource_text('functions.sql')
 EXTENSIONS_QUERY = resource_text('extensions.sql')
 ENUMS_QUERY = resource_text('enums.sql')
+DEPS_QUERY = resource_text('deps.sql')
 
 
 class InspectedSelectable(BaseInspectedSelectable):
@@ -325,6 +326,7 @@ class PostgreSQL(DBInspector):
         self.FUNCTIONS_QUERY = processed(FUNCTIONS_QUERY)
         self.EXTENSIONS_QUERY = processed(EXTENSIONS_QUERY)
         self.ENUMS_QUERY = processed(ENUMS_QUERY)
+        self.DEPS_QUERY = processed(DEPS_QUERY)
 
         super(PostgreSQL, self).__init__(c, include_internal)
 
@@ -334,6 +336,24 @@ class PostgreSQL(DBInspector):
         self.selectables = od()
         self.selectables.update(self.relations)
         self.selectables.update(self.functions)
+
+        self.load_deps()
+
+    def load_deps(self):
+        q = self.c.execute(self.DEPS_QUERY)
+
+        for dep in q:
+            x = quoted_identifier(dep.name, dep.schema)
+
+            x_dependent_on = quoted_identifier(
+                dep.name_dependent_on, dep.schema_dependent_on
+            )
+
+            self.selectables[x].dependent_on.append(x_dependent_on)
+            self.selectables[x].dependent_on.sort()
+
+            self.selectables[x_dependent_on].dependents.append(x)
+            self.selectables[x_dependent_on].dependents.sort()
 
     def load_all_relations(self):
         self.tables = od()
@@ -378,13 +398,7 @@ class PostgreSQL(DBInspector):
                 schema=f.schema,
                 columns=od((c.name, c) for c in columns),
                 relationtype=f.relationtype,
-                definition=f.definition,
-                dependent_on=[
-                    quoted_identifier(b, schema=a)
-                    for a, b
-                    in f.dependent_on
-                ],
-                dependents=[]
+                definition=f.definition
             )
 
             RELATIONTYPES = {
@@ -401,17 +415,6 @@ class PostgreSQL(DBInspector):
 
         for x in (self.tables, self.views, self.materialized_views):
             self.relations.update(x)
-
-        dependents = defaultdict(list)
-
-        for k, v in self.relations.items():
-            for dv in v.dependent_on:
-                dependents[dv].append(v.quoted_full_name)
-
-        for k, v in self.relations.items():
-            if k in dependents:
-                dependents[k].sort()
-                v.dependents = dependents[k]
 
         q = self.c.execute(self.INDEXES_QUERY)
 

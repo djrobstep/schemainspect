@@ -29,10 +29,17 @@ class AutoRepr(object):  # pragma: no cover
 
 
 def quoted_identifier(identifier, schema=None):
+    try:
+        identifier, remainder = identifier.split('(', 1)
+        remainder = '(' + remainder
+    except ValueError:
+        remainder = ''
+
     s = '"{}"'.format(identifier.replace('"', '""'))
     if schema:
         s = '"{}".{}'.format(schema.replace('"', '""'), s)
-    return s
+
+    return s + remainder
 
 
 def external_caller():

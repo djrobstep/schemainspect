@@ -19,8 +19,6 @@ from schemainspect import get_inspector, NullInspector, to_pytype
 from schemainspect.inspected import ColumnInfo
 from schemainspect.pg import InspectedIndex, InspectedSequence, InspectedConstraint, InspectedExtension, InspectedEnum
 
-from common import db  # flake8: noqa
-
 if not six.PY2:
     unicode = str
 
@@ -297,7 +295,7 @@ def setup_pg_schema(s):
 
 def asserts_pg(i):
     assert to_pytype(i.dialect, 'integer') == int
-    assert to_pytype(i.dialect, 'nonexistent') == type(None)
+    assert to_pytype(i.dialect, 'nonexistent') == type(None)  # noqa
 
     def n(name, schema='public'):
         return quoted_identifier(name, schema=schema)
@@ -405,12 +403,14 @@ def asserts_pg(i):
     with raises(ValueError):
         tid.change_string_to_enum_statement('t')
 
+
 def test_postgres_inspect(db):
     with S(db) as s:
         setup_pg_schema(s)
         i = get_inspector(s)
         asserts_pg(i)
         assert i == i == get_inspector(s)
+
 
 def test_empty():
     x = NullInspector()
