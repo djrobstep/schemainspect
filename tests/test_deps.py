@@ -61,3 +61,37 @@ def test_relationships(db):
             '"public"."depends_on_fff"': ['"public"."doubledep"'],
             '"public"."depends_on_vvv"(t text)': ['"public"."doubledep"']
         }
+
+        i.load_function_deps_experimental()
+
+        dependencies_by_name = {
+            k: v.dependent_on
+            for k, v in i.selectables.items()
+            if v.dependent_on
+        }
+
+        assert dependencies_by_name == {
+            '"public"."depends_on_vvv"(t text)': [
+                '"public"."vvv"'
+            ],
+            '"public"."depends_on_fff"': [
+                '"public"."fff"(t text)'
+            ],
+            '"public"."doubledep"': [
+                '"public"."depends_on_fff"',
+                '"public"."depends_on_vvv"(t text)'
+            ]
+        }
+
+        dependents_by_name = {
+            k: v.dependents
+            for k, v in i.selectables.items()
+            if v.dependents
+        }
+
+        assert dependents_by_name == {
+            '"public"."vvv"': ['"public"."depends_on_vvv"(t text)'],
+            '"public"."fff"(t text)': ['"public"."depends_on_fff"'],
+            '"public"."depends_on_fff"': ['"public"."doubledep"'],
+            '"public"."depends_on_vvv"(t text)': ['"public"."doubledep"']
+        }

@@ -355,6 +355,20 @@ class PostgreSQL(DBInspector):
             self.selectables[x_dependent_on].dependents.append(x)
             self.selectables[x_dependent_on].dependents.sort()
 
+    def load_function_deps_experimental(self):
+        for k, x in (list(self.functions.items()) + list(self.views.items())):
+            thing_name = x.name
+
+            for k_f, f in self.functions.items():
+                if x.name == f.name:
+                    continue
+
+                if thing_name in f.definition:
+                    f.dependent_on.append(k)
+                    f.dependent_on.sort()
+                    x.dependents.append(k_f)
+                    x.dependents.sort()
+
     def load_all_relations(self):
         self.tables = od()
         self.views = od()
