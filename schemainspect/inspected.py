@@ -9,6 +9,10 @@ class Inspected(AutoRepr):
             quoted_identifier(self.schema), quoted_identifier(self.name))
 
     @property
+    def signature(self):
+        return self.quoted_full_name
+
+    @property
     def unquoted_full_name(self):
         return '{}.{}'.format(self.schema, self.name)
 
@@ -166,6 +170,8 @@ class InspectedSelectable(Inspected):
         self.relationtype = relationtype
         self.dependent_on = dependent_on or []
         self.dependents = dependents or []
+        self.dependent_on_all = []
+        self.dependents_all = []
 
         self.constraints = od()
         self.indexes = od()

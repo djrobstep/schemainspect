@@ -26,16 +26,12 @@ lint:
 	flake8 schemainspect
 	flake8 tests
 
-docs:
-	cd docs && make clean && make html
-
-opendocs:
-	BROWSER=firefox python -c 'import os;import webbrowser;webbrowser.open_new_tab("file://" + os.getcwd() + "/docs/_build/html/index.html")'
-
 tidy: clean lint
 
 all: clean lint tox
 
-publish:
+upload:
 	python setup.py sdist bdist_wheel --universal
 	twine upload dist/*
+
+publish: all upload

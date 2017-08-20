@@ -338,6 +338,8 @@ class PostgreSQL(DBInspector):
         self.selectables.update(self.functions)
 
         self.load_deps()
+        self.load_function_deps_experimental()
+        self.load_deps_all()
 
     def load_deps(self):
         q = self.c.execute(self.DEPS_QUERY)
@@ -354,6 +356,34 @@ class PostgreSQL(DBInspector):
 
             self.selectables[x_dependent_on].dependents.append(x)
             self.selectables[x_dependent_on].dependents.sort()
+
+    def load_deps_all(self):
+        def get_related_for_item(item, att):
+            related = [
+                self.selectables[_]
+                for _ in getattr(item, att)
+            ]
+
+            return [item.signature] + [
+                _ for d
+                in related
+                for _ in get_related_for_item(d, att)
+            ]
+
+        for k, x in self.selectables.items():
+            d_all = get_related_for_item(
+                x,
+                'dependent_on'
+            )[1:]
+            d_all.sort()
+            x.dependent_on_all = d_all
+
+            d_all = get_related_for_item(
+                x,
+                'dependents'
+            )[1:]
+            d_all.sort()
+            x.dependents_all = d_all
 
     def load_function_deps_experimental(self):
         for k, x in (list(self.functions.items()) + list(self.views.items())):
