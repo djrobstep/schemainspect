@@ -28,6 +28,8 @@ CREATES = """
 
 
 def test_relationships(db):
+    # commented-out dependencies are the dependencies that aren't tracked directly by postgres
+
     with S(db) as s:
         s.execute(CREATES)
 
@@ -41,9 +43,9 @@ def test_relationships(db):
         }
 
         assert dependencies_by_name == {
-            '"public"."depends_on_vvv"(t text)': [
-                '"public"."vvv"'
-            ],
+            # '"public"."depends_on_vvv"(t text)': [
+            #     '"public"."vvv"'
+            # ],
             '"public"."depends_on_fff"': [
                 '"public"."fff"(t text)'
             ],
@@ -60,7 +62,7 @@ def test_relationships(db):
         }
 
         assert dependents_by_name == {
-            '"public"."vvv"': ['"public"."depends_on_vvv"(t text)'],
+            # '"public"."vvv"': ['"public"."depends_on_vvv"(t text)'],
             '"public"."fff"(t text)': ['"public"."depends_on_fff"'],
             '"public"."depends_on_fff"': ['"public"."doubledep"'],
             '"public"."depends_on_vvv"(t text)': ['"public"."doubledep"']
@@ -75,9 +77,9 @@ def test_relationships(db):
         }
 
         assert dependencies_by_name == {
-            '"public"."depends_on_vvv"(t text)': [
-                '"public"."vvv"'
-            ],
+            # '"public"."depends_on_vvv"(t text)': [
+            #     '"public"."vvv"'
+            # ],
             '"public"."depends_on_fff"': [
                 '"public"."fff"(t text)'
             ],
@@ -85,7 +87,7 @@ def test_relationships(db):
                 '"public"."depends_on_fff"',
                 '"public"."depends_on_vvv"(t text)',
                 '"public"."fff"(t text)',
-                '"public"."vvv"'
+                # '"public"."vvv"'
             ]
         }
 
@@ -96,7 +98,7 @@ def test_relationships(db):
         }
 
         assert dependents_by_name == {
-            '"public"."vvv"': ['"public"."depends_on_vvv"(t text)', '"public"."doubledep"'],
+            # '"public"."vvv"': ['"public"."depends_on_vvv"(t text)', '"public"."doubledep"'],
             '"public"."fff"(t text)': ['"public"."depends_on_fff"', '"public"."doubledep"'],
             '"public"."depends_on_fff"': ['"public"."doubledep"'],
             '"public"."depends_on_vvv"(t text)': ['"public"."doubledep"']

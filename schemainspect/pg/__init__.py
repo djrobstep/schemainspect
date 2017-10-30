@@ -338,7 +338,6 @@ class PostgreSQL(DBInspector):
         self.selectables.update(self.functions)
 
         self.load_deps()
-        self.load_function_deps_experimental()
         self.load_deps_all()
 
     def load_deps(self):
