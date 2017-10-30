@@ -316,7 +316,12 @@ def asserts_pg(i):
 
     v = i.views[v_films]
 
-    public_views = {k: v for k, v in i.views.items() if v.schema == 'public'}
+    public_views = od(
+        (k, v)
+        for k, v
+        in i.views.items()
+        if v.schema == 'public'
+    )
 
     assert list(public_views.keys()) == [v_films, v_films2]
     assert v.columns == FILMS_COLUMNS
