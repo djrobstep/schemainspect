@@ -89,7 +89,7 @@ with r1 as (
             pg_get_function_result(oid) as result_string,
             pg_get_function_identity_arguments(oid) as identity_arguments
         FROM r
-            JOIN information_schema.parameters p ON
+            LEFT JOIN information_schema.parameters p ON
                 r.specific_name=p.specific_name
         order by
             name, parameter_mode, ordinal_position, parameter_name
