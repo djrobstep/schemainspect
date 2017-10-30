@@ -273,6 +273,14 @@ def setup_pg_schema(s):
     """)
 
     s.execute("""
+        CREATE OR REPLACE FUNCTION inc_f_noargs() RETURNS void AS $$
+        begin
+            perform 1;
+        end;
+        $$ LANGUAGE plpgsql stable;
+    """)
+
+    s.execute("""
             create index on films(title);
     """)
 
@@ -343,13 +351,16 @@ def asserts_pg(i):
 
     films_f = n('films_f') + '(d date, def_t text, def_d date)'
     inc_f = n('inc_f') + '(integer)'
+    inc_f_noargs = n('inc_f_noargs') + '()'
     inc_f_out = n('inc_f_out') + '(integer, OUT outparam integer)'
+
     public_funcs = \
         [k for k, v in i.functions.items() if v.schema == 'public']
-    assert public_funcs == [films_f, inc_f, inc_f_out]
+    assert public_funcs == [films_f, inc_f, inc_f_noargs, inc_f_out]
     f = i.functions[films_f]
     f2 = i.functions[inc_f]
-    f3 = i.functions[inc_f_out]
+    f3 = i.functions[inc_f_noargs]
+    f4 = i.functions[inc_f_out]
 
     assert f == f
     assert f != f2
@@ -357,8 +368,11 @@ def asserts_pg(i):
     assert f.columns == FILMSF_COLUMNS
 
     assert f.inputs == FILMSF_INPUTS
+    assert f3.inputs == []
+
     assert list(f2.columns.values())[0].name == 'inc_f'
-    assert list(f3.columns.values())[0].name == 'outparam'
+    assert list(f3.columns.values())[0].name == 'inc_f_noargs'
+    assert list(f4.columns.values())[0].name == 'outparam'
 
     fdef = i.functions[films_f].definition
     assert fdef == "select 'a'::varchar, '2014-01-01'::date"
