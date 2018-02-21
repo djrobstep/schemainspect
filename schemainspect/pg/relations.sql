@@ -18,7 +18,7 @@ with extension_oids as (
   WHERE
     t.typcategory = 'E'
     and e.objid is null
-    -- SKIP_INTERNAL and n.nspname not in ('pg_catalog', 'information_schema')
+    -- SKIP_INTERNAL and n.nspname not in ('pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
     AND pg_catalog.pg_type_is_visible(t.oid)
   ORDER BY 1, 2
 ),
@@ -40,7 +40,7 @@ r as (
           on c.oid = e.objid
     where c.relkind in ('r', 'v', 'm', 'c')
     -- SKIP_INTERNAL and e.objid is null
-    -- SKIP_INTERNAL and n.nspname not in ('pg_catalog', 'information_schema')
+    -- SKIP_INTERNAL and n.nspname not in ('pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
 )
 select
     r.relationtype,
@@ -67,6 +67,6 @@ FROM
     left join enums e
       on a.atttypid = e.enum_oid
 where a.attnum > 0
--- SKIP_INTERNAL and r.schema not in ('pg_catalog', 'information_schema')
+-- SKIP_INTERNAL and r.schema not in ('pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
 AND    NOT a.attisdropped  -- no dead columns
 order by relationtype, r.schema, r.name, position_number;

@@ -14,7 +14,7 @@ with extension_oids as (
         indexdef as create_statement
     FROM
         pg_indexes
-        -- SKIP_INTERNAL where schemaname not in ('pg_catalog', 'information_schema')
+        -- SKIP_INTERNAL where schemaname not in ('pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
     order by
         schemaname, tablename, indexname
 )
@@ -43,6 +43,6 @@ from
     left outer join extension_oids e
       on pg_class.oid = e.objid
     where true
-  -- SKIP_INTERNAL and nspname not in ('pg_catalog', 'information_schema')
+  -- SKIP_INTERNAL and nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
   -- SKIP_INTERNAL and e.objid is null
 order by 1, 3, 2;

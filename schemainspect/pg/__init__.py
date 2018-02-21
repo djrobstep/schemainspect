@@ -19,6 +19,7 @@ $${definition}$$
 language {language} {volatility} {strictness} {security_type};"""
 
 ALL_RELATIONS_QUERY = resource_text('relations.sql')
+SCHEMAS_QUERY = resource_text('schemas.sql')
 INDEXES_QUERY = resource_text('indexes.sql')
 SEQUENCES_QUERY = resource_text('sequences.sql')
 CONSTRAINTS_QUERY = resource_text('constraints.sql')
@@ -237,6 +238,23 @@ class InspectedEnum(Inspected):
         return all(equalities)
 
 
+class InspectedSchema(Inspected):
+    def __init__(self, schema):
+        self.schema = schema
+        self.name = None
+
+    @property
+    def create_statement(self):
+        return "create schema if not exists {};".format(self.quoted_schema)
+
+    @property
+    def drop_statement(self):
+        return "drop schema if exists {};".format(self.quoted_schema)
+
+    def __eq__(self, other):
+        return self.schema == other.schema
+
+
 class InspectedExtension(Inspected):
     def __init__(self, name, schema, version):
 
@@ -327,10 +345,12 @@ class PostgreSQL(DBInspector):
         self.EXTENSIONS_QUERY = processed(EXTENSIONS_QUERY)
         self.ENUMS_QUERY = processed(ENUMS_QUERY)
         self.DEPS_QUERY = processed(DEPS_QUERY)
+        self.SCHEMAS_QUERY = processed(SCHEMAS_QUERY)
 
         super(PostgreSQL, self).__init__(c, include_internal)
 
     def load_all(self):
+        self.load_schemas()
         self.load_all_relations()
         self.load_functions()
         self.selectables = od()
@@ -339,6 +359,20 @@ class PostgreSQL(DBInspector):
 
         self.load_deps()
         self.load_deps_all()
+
+    def load_schemas(self):
+        q = self.c.execute(self.SCHEMAS_QUERY)
+
+        schemas = [
+            InspectedSchema(schema=each.schema)
+            for each in q
+        ]
+
+        self.schemas = {
+            schema.schema: schema
+            for schema
+            in schemas
+        }
 
     def load_deps(self):
         q = self.c.execute(self.DEPS_QUERY)

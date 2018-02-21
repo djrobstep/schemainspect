@@ -21,6 +21,6 @@ FROM pg_catalog.pg_type t
 WHERE
   t.typcategory = 'E'
   and e.objid is null
-  -- SKIP_INTERNAL and n.nspname not in ('pg_catalog', 'information_schema')
+  -- SKIP_INTERNAL and n.nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
   AND pg_catalog.pg_type_is_visible(t.oid)
 ORDER BY 1, 2;

@@ -1,10 +1,10 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+from __future__ import (absolute_import, division, print_function, unicode_literals)
 
 from collections import OrderedDict as od
 
 import datetime
 from pytest import raises
+
 import sqlalchemy.exc
 import sqlalchemy.dialects.postgresql
 import six
@@ -17,6 +17,7 @@ from schemainspect.misc import quoted_identifier
 import schemainspect
 from schemainspect import get_inspector, NullInspector, to_pytype
 from schemainspect.inspected import ColumnInfo
+
 from schemainspect.pg import InspectedIndex, InspectedSequence, InspectedConstraint, InspectedExtension, InspectedEnum
 
 if not six.PY2:
@@ -225,6 +226,8 @@ def test_postgres_objects():
 def setup_pg_schema(s):
     s.execute('create extension pg_trgm')
 
+    s.execute('create schema otherschema')
+
     s.execute("""
         CREATE TABLE films (
             code        char(5) CONSTRAINT firstkey PRIMARY KEY,
@@ -302,6 +305,19 @@ def setup_pg_schema(s):
 
 
 def asserts_pg(i):
+    assert list(i.schemas.keys()) == [
+        'public',
+        'otherschema'
+    ]
+
+    otherschema = i.schemas['otherschema']
+
+    assert i.schemas['public'] != i.schemas['otherschema']
+
+    assert otherschema.create_statement == 'create schema if not exists "otherschema";'
+
+    assert otherschema.drop_statement == 'drop schema if exists "otherschema";'
+
     assert to_pytype(i.dialect, 'integer') == int
     assert to_pytype(i.dialect, 'nonexistent') == type(None)  # noqa
 
