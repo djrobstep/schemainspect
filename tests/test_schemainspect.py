@@ -306,8 +306,8 @@ def setup_pg_schema(s):
 
 def asserts_pg(i):
     assert list(i.schemas.keys()) == [
-        'public',
-        'otherschema'
+        'otherschema',
+        'public'
     ]
 
     otherschema = i.schemas['otherschema']

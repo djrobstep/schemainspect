@@ -368,11 +368,11 @@ class PostgreSQL(DBInspector):
             for each in q
         ]
 
-        self.schemas = {
-            schema.schema: schema
+        self.schemas = od(
+            (schema.schema, schema)
             for schema
             in schemas
-        }
+        )
 
     def load_deps(self):
         q = self.c.execute(self.DEPS_QUERY)
