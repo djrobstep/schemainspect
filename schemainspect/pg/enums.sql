@@ -7,7 +7,7 @@ with extension_oids as (
       d.refclassid = 'pg_extension'::regclass
 )
 SELECT n.nspname as "schema",
-  pg_catalog.format_type(t.oid, NULL) AS "name",
+  substr(pg_catalog.format_type(t.oid, NULL), strpos(pg_catalog.format_type(t.oid, NULL), '.') + 1) AS "name",
   ARRAY(
      SELECT e.enumlabel
       FROM pg_catalog.pg_enum e
@@ -22,5 +22,4 @@ WHERE
   t.typcategory = 'E'
   and e.objid is null
   -- SKIP_INTERNAL and n.nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
-  AND pg_catalog.pg_type_is_visible(t.oid)
 ORDER BY 1, 2;

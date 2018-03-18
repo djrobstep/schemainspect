@@ -269,7 +269,7 @@ class InspectedExtension(Inspected):
     @property
     def create_statement(self):
         return \
-            "create extension {} with schema {} version '{}';"\
+            "create extension if not exists {} with schema {} version '{}';"\
             .format(
                 self.quoted_name,
                 self.quoted_schema,
@@ -486,6 +486,7 @@ class PostgreSQL(DBInspector):
             }
 
             att = getattr(self, RELATIONTYPES[f.relationtype])
+
             att[s.quoted_full_name] = s
 
         self.relations = od()
@@ -597,10 +598,20 @@ class PostgreSQL(DBInspector):
                 volatility=f.volatility)
 
             identity_arguments = '({})'.format(s.identity_arguments)
+
             self.functions[s.quoted_full_name + identity_arguments] = s
+
+    def one_schema(self, schema):
+        props = 'schemas relations tables views functions selectables sequences constraints indexes enums extensions'
+
+        for prop in props.split():
+            att = getattr(self, prop)
+            filtered = {k: v for k, v in att.items() if v.schema == schema}
+            setattr(self, prop, filtered)
 
     def __eq__(self, other):
         return type(self) == type(other) \
+            and self.schemas == other.schemas \
             and self.relations == other.relations \
             and self.sequences == other.sequences \
             and self.enums == other.enums \

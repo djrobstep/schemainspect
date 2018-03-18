@@ -22,6 +22,9 @@ clean:
 	git clean -fXd
 	find . -name \*.pyc -delete
 
+fmt:
+	black .
+
 lint:
 	flake8 schemainspect
 	flake8 tests

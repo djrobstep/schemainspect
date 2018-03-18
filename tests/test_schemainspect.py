@@ -148,7 +148,7 @@ def test_postgres_objects():
     ex = InspectedExtension('name', 'schema', '1.2')
     assert ex.drop_statement == 'drop extension if exists "name";'
     assert ex.create_statement == \
-        'create extension "name" with schema "schema" version \'1.2\';'
+        'create extension if not exists "name" with schema "schema" version \'1.2\';'
     assert ex.update_statement == \
         'alter extension "schema"."name" update to version \'1.2\';'
 
@@ -445,6 +445,22 @@ def test_postgres_inspect(db):
         i = get_inspector(s)
         asserts_pg(i)
         assert i == i == get_inspector(s)
+
+
+def asserts_pg_singleschema(i, schema_name):
+    for prop in 'schemas relations tables views functions selectables sequences enums constraints'.split():
+        att = getattr(i, prop)
+        for k, v in att.items():
+            assert v.schema == schema_name
+
+
+def test_postgres_inspect_singleschema(db):
+    with S(db) as s:
+        setup_pg_schema(s)
+        i = get_inspector(s, schema='otherschema')
+        asserts_pg_singleschema(i, 'otherschema')
+        i = get_inspector(s, schema='public')
+        asserts_pg_singleschema(i, 'public')
 
 
 def test_empty():
