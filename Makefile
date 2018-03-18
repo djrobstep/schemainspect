@@ -29,12 +29,12 @@ lint:
 	flake8 schemainspect
 	flake8 tests
 
-tidy: clean lint
+tidy: clean fmt lint
 
-all: clean lint tox
+all: tidy tox
 
 upload:
 	python setup.py sdist bdist_wheel --universal
 	twine upload dist/*
 
-publish: all upload
+publish: pip tidy tox clean upload
