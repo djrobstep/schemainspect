@@ -10,7 +10,6 @@ def get_inspector(x, schema=None):
         return NullInspector()
 
     c = connection_from_s_or_c(x)
-
     try:
         ic = SUPPORTED[c.dialect.name]
     except KeyError:

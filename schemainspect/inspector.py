@@ -1,5 +1,4 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+from __future__ import (absolute_import, division, print_function, unicode_literals)
 
 from collections import OrderedDict as od
 
@@ -12,11 +11,13 @@ def to_pytype(sqla_dialect, typename):
 
     try:
         return sqla_obj.python_type
+
     except (NotImplementedError):
         return type(sqla_obj)
 
 
 class DBInspector(object):
+
     def __init__(self, c, include_internal=False):
         self.c = c
         self.engine = self.c.engine
@@ -29,6 +30,7 @@ class DBInspector(object):
 
 
 class NullInspector(DBInspector):
+
     def __init__(self):
         pass
 

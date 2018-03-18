@@ -7,17 +7,20 @@ def connection_from_s_or_c(s_or_c):  # pragma: no cover
     try:
         s_or_c.engine
         return s_or_c
+
     except AttributeError:
         return s_or_c.connection()
 
 
 @six.python_2_unicode_compatible
 class AutoRepr(object):  # pragma: no cover
+
     def __repr__(self):
         cname = self.__class__.__name__
         vals = [
             '{}={}'.format(k, repr(v))
-            for k, v in sorted(self.__dict__.items()) if not k.startswith('_')
+            for k, v in sorted(self.__dict__.items())
+            if not k.startswith('_')
         ]
         return '{}({})'.format(cname, ', '.join(vals))
 
@@ -34,11 +37,9 @@ def quoted_identifier(identifier, schema=None):
         remainder = '(' + remainder
     except ValueError:
         remainder = ''
-
     s = '"{}"'.format(identifier.replace('"', '""'))
     if schema:
         s = '"{}".{}'.format(schema.replace('"', '""'), s)
-
     return s + remainder
 
 

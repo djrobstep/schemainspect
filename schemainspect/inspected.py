@@ -3,10 +3,12 @@ from collections import OrderedDict as od
 
 
 class Inspected(AutoRepr):
+
     @property
     def quoted_full_name(self):
         return '{}.{}'.format(
-            quoted_identifier(self.schema), quoted_identifier(self.name))
+            quoted_identifier(self.schema), quoted_identifier(self.name)
+        )
 
     @property
     def signature(self):
@@ -29,24 +31,27 @@ class Inspected(AutoRepr):
 
 
 class TableRelated(object):
+
     @property
     def quoted_full_table_name(self):
         return '{}.{}'.format(
-            quoted_identifier(self.schema),
-            quoted_identifier(self.table_name))
+            quoted_identifier(self.schema), quoted_identifier(self.table_name)
+        )
 
 
 class ColumnInfo(AutoRepr):
-    def __init__(self,
-                 name,
-                 dbtype,
-                 pytype,
-                 default=None,
-                 not_null=False,
-                 is_enum=False,
-                 enum=None,
-                 dbtypestr=None):
 
+    def __init__(
+        self,
+        name,
+        dbtype,
+        pytype,
+        default=None,
+        not_null=False,
+        is_enum=False,
+        enum=None,
+        dbtypestr=None,
+    ):
         self.name = name or ''
         self.dbtype = dbtype
         self.dbtypestr = dbtypestr or dbtype
@@ -57,33 +62,24 @@ class ColumnInfo(AutoRepr):
         self.enum = enum
 
     def __eq__(self, other):
-        return self.name == other.name \
-            and self.dbtype == other.dbtype \
-            and self.dbtypestr == other.dbtypestr \
-            and self.pytype == other.pytype \
-            and self.default == other.default \
-            and self.not_null == other.not_null \
-            and self.enum == other.enum
+        return self.name == other.name and self.dbtype == other.dbtype and self.dbtypestr == other.dbtypestr and self.pytype == other.pytype and self.default == other.default and self.not_null == other.not_null and self.enum == other.enum
 
     def alter_clauses(self, other):
         clauses = []
-
         if self.default != other.default:
             clauses.append(self.alter_default_clause)
-
         if self.not_null != other.not_null:
             clauses.append(self.alter_not_null_clause)
-
         if self.dbtypestr != other.dbtypestr:
             clauses.append(self.alter_data_type_clause)
-
         return clauses
 
     def change_enum_to_string_statement(self, table_name):
         if self.is_enum:
             return 'alter table {} alter column {} set data type varchar;'.format(
-                table_name,
-                self.quoted_name)
+                table_name, self.quoted_name
+            )
+
         else:
             raise ValueError
 
@@ -94,7 +90,9 @@ class ColumnInfo(AutoRepr):
                 self.quoted_name,
                 self.dbtypestr,
                 self.quoted_name,
-                self.dbtypestr)
+                self.dbtypestr,
+            )
+
         else:
             raise ValueError
 
@@ -126,42 +124,38 @@ class ColumnInfo(AutoRepr):
     @property
     def alter_not_null_clause(self):
         keyword = 'set' if self.not_null else 'drop'
-
-        return 'alter column {} {} not null'.format(
-            self.quoted_name,
-            keyword
-        )
+        return 'alter column {} {} not null'.format(self.quoted_name, keyword)
 
     @property
     def alter_default_clause(self):
         if self.default:
             alter = 'alter column {} set default {}'.format(
-                self.quoted_name,
-                self.default
+                self.quoted_name, self.default
             )
         else:
-            alter = 'alter column {} drop default'.format(
-                self.quoted_name
-            )
+            alter = 'alter column {} drop default'.format(self.quoted_name)
         return alter
 
     @property
     def alter_data_type_clause(self):
         return 'alter column {} set data type {}'.format(
-            self.quoted_name,
-            self.dbtypestr)
+            self.quoted_name, self.dbtypestr
+        )
 
 
 class InspectedSelectable(Inspected):
-    def __init__(self,
-                 name,
-                 schema,
-                 columns,
-                 inputs=None,
-                 definition=None,
-                 dependent_on=None,
-                 dependents=None,
-                 relationtype='unknown'):
+
+    def __init__(
+        self,
+        name,
+        schema,
+        columns,
+        inputs=None,
+        definition=None,
+        dependent_on=None,
+        dependents=None,
+        relationtype='unknown',
+    ):
         self.name = name
         self.schema = schema
         self.inputs = inputs or []
@@ -172,17 +166,11 @@ class InspectedSelectable(Inspected):
         self.dependents = dependents or []
         self.dependent_on_all = []
         self.dependents_all = []
-
         self.constraints = od()
         self.indexes = od()
 
     def __eq__(self, other):
-        equalities = type(self) == type(other), \
-            self.relationtype == other.relationtype, \
-            self.name == other.name, \
-            self.schema == other.schema, \
-            self.columns == other.columns, \
-            self.inputs == other.inputs, \
-            self.definition == other.definition
-
+        equalities = type(self) == type(
+            other
+        ), self.relationtype == other.relationtype, self.name == other.name, self.schema == other.schema, self.columns == other.columns, self.inputs == other.inputs, self.definition == other.definition
         return all(equalities)
