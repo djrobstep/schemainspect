@@ -51,7 +51,7 @@ select
     a.attname as attname,
     a.attnotnull as not_null,
     a.atttypid::regtype AS datatype,
-    ad.adsrc as defaultdef,
+    pg_get_expr(ad.adbin, ad.adrelid) as defaultdef,
     r.oid as oid,
     format_type(atttypid, atttypmod) AS datatypestring,
     e.enum_oid is not null as is_enum,

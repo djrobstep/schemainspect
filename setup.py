@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='schemainspect',
-    version='0.1.1521373866',
+    version='0.1.1521505759',
     url='https://github.com/djrobstep/schemainspect',
     description='Schema inspection for PostgreSQL',
     long_description=io.open('README.rst').read(),
@@ -16,5 +16,5 @@ setup(
     packages=find_packages(),
     package_data={'schemainspect': ['pg/*.sql']},
     classifiers=['Development Status :: 4 - Beta'],
-    extras_require={'pg': ['psycopg2']},
+    extras_require={'pg': ['psycopg2-binary']},
 )
