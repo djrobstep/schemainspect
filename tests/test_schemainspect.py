@@ -348,7 +348,7 @@ def asserts_pg(i):
     assert [e.quoted_full_name for e in i.extensions.values()] == [
         n('plpgsql', schema='pg_catalog'), n('pg_trgm')
     ]
-    cons = i.constraints[n('firstkey')]
+    cons = i.constraints['"public"."films"."firstkey"']
     assert cons.create_statement == 'alter table "public"."films" add constraint "firstkey" PRIMARY KEY using index "firstkey";'
     t_films = n('films')
     t = i.tables[t_films]
