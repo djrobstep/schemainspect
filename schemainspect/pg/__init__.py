@@ -301,6 +301,14 @@ class InspectedConstraint(Inspected, TableRelated):
                 self.quoted_full_table_name, self.quoted_name, self.definition
             )
 
+    @property
+    def quoted_full_name(self):
+        return '{}.{}.{}'.format(
+            quoted_identifier(self.schema),
+            quoted_identifier(self.table_name),
+            quoted_identifier(self.name)
+        )
+
     def __eq__(self, other):
         equalities = self.name == other.name, self.schema == other.schema, self.table_name == other.table_name, self.definition == other.definition, self.index == other.index
         return all(equalities)
