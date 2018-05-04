@@ -47,13 +47,13 @@ Author Credits
 Initial development, maintenance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- [djrobstep](https://github.com/djrobstep)
+- `djrobstep <https://github.com/djrobstep>`_
 
 Contributions
 ~~~~~~~~~~~~~
 
-- [BenSjoberg](https://github.com/BenSjoberg)
-- [johto](https://github.com/johto)
+- `BenSjoberg <https://github.com/BenSjoberg>`_
+- `johto <https://github.com/johto>`_
 
 
 Install
