@@ -44,11 +44,13 @@ Documentation is a bit patchy at the moment. Watch this space!
 Author Credits
 --------------
 
-### Initial development, maintenance
+Initial development, maintenance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - [djrobstep](https://github.com/djrobstep)
 
-### Contributions
+Contributions
+~~~~~~~~~~~~~
 
 - [BenSjoberg](https://github.com/BenSjoberg)
 - [johto](https://github.com/johto)
