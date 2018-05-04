@@ -1,4 +1,4 @@
-from __future__ import (absolute_import, division, print_function, unicode_literals)
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from ..inspector import DBInspector
 from ..inspected import ColumnInfo, Inspected, TableRelated
@@ -15,15 +15,15 @@ CREATE_FUNCTION_FORMAT = """create or replace function {signature}
 returns {result_string} as
 $${definition}$$
 language {language} {volatility} {strictness} {security_type};"""
-ALL_RELATIONS_QUERY = resource_text('relations.sql')
-SCHEMAS_QUERY = resource_text('schemas.sql')
-INDEXES_QUERY = resource_text('indexes.sql')
-SEQUENCES_QUERY = resource_text('sequences.sql')
-CONSTRAINTS_QUERY = resource_text('constraints.sql')
-FUNCTIONS_QUERY = resource_text('functions.sql')
-EXTENSIONS_QUERY = resource_text('extensions.sql')
-ENUMS_QUERY = resource_text('enums.sql')
-DEPS_QUERY = resource_text('deps.sql')
+ALL_RELATIONS_QUERY = resource_text("relations.sql")
+SCHEMAS_QUERY = resource_text("schemas.sql")
+INDEXES_QUERY = resource_text("indexes.sql")
+SEQUENCES_QUERY = resource_text("sequences.sql")
+CONSTRAINTS_QUERY = resource_text("constraints.sql")
+FUNCTIONS_QUERY = resource_text("functions.sql")
+EXTENSIONS_QUERY = resource_text("extensions.sql")
+ENUMS_QUERY = resource_text("enums.sql")
+DEPS_QUERY = resource_text("deps.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
@@ -31,18 +31,18 @@ class InspectedSelectable(BaseInspectedSelectable):
     @property
     def create_statement(self):
         n = self.quoted_full_name
-        if self.relationtype == 'r':
-            colspec = ',\n    '.join(c.creation_clause for c in self.columns.values())
+        if self.relationtype == "r":
+            colspec = ",\n    ".join(c.creation_clause for c in self.columns.values())
             create_statement = CREATE_TABLE.format(n, colspec)
-        elif self.relationtype == 'v':
-            create_statement = 'create view {} as {}\n'.format(n, self.definition)
-        elif self.relationtype == 'm':
-            create_statement = 'create materialized view {} as {}\n'.format(
+        elif self.relationtype == "v":
+            create_statement = "create view {} as {}\n".format(n, self.definition)
+        elif self.relationtype == "m":
+            create_statement = "create materialized view {} as {}\n".format(
                 n, self.definition
             )
-        elif self.relationtype == 'c':
-            colspec = ', '.join(c.creation_clause for c in self.columns.values())
-            create_statement = 'create type {} as ({});'.format(n, colspec)
+        elif self.relationtype == "c":
+            colspec = ", ".join(c.creation_clause for c in self.columns.values())
+            create_statement = "create type {} as ({});".format(n, colspec)
         else:
             raise NotImplementedError  # pragma: no cover
 
@@ -51,22 +51,22 @@ class InspectedSelectable(BaseInspectedSelectable):
     @property
     def drop_statement(self):
         n = self.quoted_full_name
-        if self.relationtype == 'r':
-            drop_statement = 'drop table {};'.format(n)
-        elif self.relationtype == 'v':
-            drop_statement = 'drop view if exists {} cascade;'.format(n)
-        elif self.relationtype == 'm':
-            drop_statement = 'drop materialized view if exists {} cascade;'.format(n)
-        elif self.relationtype == 'c':
-            drop_statement = 'drop type {};'.format(n)
+        if self.relationtype == "r":
+            drop_statement = "drop table {};".format(n)
+        elif self.relationtype == "v":
+            drop_statement = "drop view if exists {} cascade;".format(n)
+        elif self.relationtype == "m":
+            drop_statement = "drop materialized view if exists {} cascade;".format(n)
+        elif self.relationtype == "c":
+            drop_statement = "drop type {};".format(n)
         else:
             raise NotImplementedError  # pragma: no cover
 
         return drop_statement
 
     def alter_table_statement(self, clause):
-        if self.relationtype == 'r':
-            alter = 'alter table {} {};'.format(self.quoted_full_name, clause)
+        if self.relationtype == "r":
+            alter = "alter table {} {};".format(self.quoted_full_name, clause)
         else:
             raise NotImplementedError  # pragma: no cover
 
@@ -101,12 +101,12 @@ class InspectedFunction(InspectedSelectable):
             columns=columns,
             inputs=inputs,
             definition=definition,
-            relationtype='f',
+            relationtype="f",
         )
 
     @property
     def signature(self):
-        return '{}({})'.format(self.quoted_full_name, self.identity_arguments)
+        return "{}({})".format(self.quoted_full_name, self.identity_arguments)
 
     @property
     def create_statement(self):
@@ -122,7 +122,7 @@ class InspectedFunction(InspectedSelectable):
 
     @property
     def drop_statement(self):
-        return 'drop function if exists {} cascade;'.format(self.signature)
+        return "drop function if exists {} cascade;".format(self.signature)
 
     def __eq__(self, other):
         return self.signature == other.signature and self.result_string == other.result_string and self.definition == other.definition and self.language == other.language and self.volatility == other.volatility and self.strictness == other.strictness and self.security_type == other.security_type
@@ -138,11 +138,11 @@ class InspectedIndex(Inspected, TableRelated):
 
     @property
     def drop_statement(self):
-        return 'drop index if exists {};'.format(self.quoted_full_name)
+        return "drop index if exists {};".format(self.quoted_full_name)
 
     @property
     def create_statement(self):
-        return '{};'.format(self.definition)
+        return "{};".format(self.definition)
 
     def __eq__(self, other):
         equalities = self.name == other.name, self.schema == other.schema, self.table_name == other.table_name, self.definition == other.definition
@@ -157,11 +157,11 @@ class InspectedSequence(Inspected):
 
     @property
     def drop_statement(self):
-        return 'drop sequence if exists {};'.format(self.quoted_full_name)
+        return "drop sequence if exists {};".format(self.quoted_full_name)
 
     @property
     def create_statement(self):
-        return 'create sequence {};'.format(self.quoted_full_name)
+        return "create sequence {};".format(self.quoted_full_name)
 
     def __eq__(self, other):
         equalities = self.name == other.name, self.schema == other.schema
@@ -177,18 +177,18 @@ class InspectedEnum(Inspected):
 
     @property
     def drop_statement(self):
-        return 'drop type {};'.format(self.quoted_full_name)
+        return "drop type {};".format(self.quoted_full_name)
 
     @property
     def create_statement(self):
-        return 'create type {} as enum ({});'.format(
+        return "create type {} as enum ({});".format(
             self.quoted_full_name, self.quoted_elements
         )
 
     @property
     def quoted_elements(self):
         quoted = ["'{}'".format(e) for e in self.elements]
-        return ', '.join(quoted)
+        return ", ".join(quoted)
 
     def change_statements(self, new):
         if not self.can_be_changed_to(new):
@@ -249,7 +249,7 @@ class InspectedExtension(Inspected):
 
     @property
     def drop_statement(self):
-        return 'drop extension if exists {};'.format(self.quoted_name)
+        return "drop extension if exists {};".format(self.quoted_name)
 
     @property
     def create_statement(self):
@@ -280,14 +280,14 @@ class InspectedConstraint(Inspected, TableRelated):
 
     @property
     def drop_statement(self):
-        return 'alter table {} drop constraint {};'.format(
+        return "alter table {} drop constraint {};".format(
             self.quoted_full_table_name, self.quoted_name
         )
 
     @property
     def create_statement(self):
-        USING = 'alter table {} add constraint {} {} using index {};'
-        NOT_USING = 'alter table {} add constraint {} {};'
+        USING = "alter table {} add constraint {} {} using index {};"
+        NOT_USING = "alter table {} add constraint {} {};"
         if self.index:
             return USING.format(
                 self.quoted_full_table_name,
@@ -303,10 +303,10 @@ class InspectedConstraint(Inspected, TableRelated):
 
     @property
     def quoted_full_name(self):
-        return '{}.{}.{}'.format(
+        return "{}.{}.{}".format(
             quoted_identifier(self.schema),
             quoted_identifier(self.table_name),
-            quoted_identifier(self.name)
+            quoted_identifier(self.name),
         )
 
     def __eq__(self, other):
@@ -320,7 +320,7 @@ class PostgreSQL(DBInspector):
 
         def processed(q):
             if not include_internal:
-                q = q.replace('-- SKIP_INTERNAL', '')
+                q = q.replace("-- SKIP_INTERNAL", "")
             return q
 
         self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY)
@@ -370,15 +370,15 @@ class PostgreSQL(DBInspector):
             ]
 
         for k, x in self.selectables.items():
-            d_all = get_related_for_item(x, 'dependent_on')[1:]
+            d_all = get_related_for_item(x, "dependent_on")[1:]
             d_all.sort()
             x.dependent_on_all = d_all
-            d_all = get_related_for_item(x, 'dependents')[1:]
+            d_all = get_related_for_item(x, "dependents")[1:]
             d_all.sort()
             x.dependents_all = d_all
 
     def load_function_deps_experimental(self):
-        for k, x in (list(self.functions.items()) + list(self.views.items())):
+        for k, x in list(self.functions.items()) + list(self.views.items()):
             thing_name = x.name
             for k_f, f in self.functions.items():
                 if x.name == f.name:
@@ -409,7 +409,7 @@ class PostgreSQL(DBInspector):
                 if not name and not schema:
                     return None
 
-                quoted_full_name = '{}.{}'.format(
+                quoted_full_name = "{}.{}".format(
                     quoted_identifier(schema), quoted_identifier(name)
                 )
                 return self.enums[quoted_full_name]
@@ -435,10 +435,10 @@ class PostgreSQL(DBInspector):
                 definition=f.definition,
             )
             RELATIONTYPES = {
-                'r': 'tables',
-                'v': 'views',
-                'm': 'materialized_views',
-                'c': 'composite_types',
+                "r": "tables",
+                "v": "views",
+                "m": "materialized_views",
+                "c": "composite_types",
             }
             att = getattr(self, RELATIONTYPES[f.relationtype])
             att[s.quoted_full_name] = s
@@ -495,7 +495,7 @@ class PostgreSQL(DBInspector):
         for _, g in groupby(q, lambda x: (x.schema, x.name, x.identity_arguments)):
             clist = list(g)
             f = clist[0]
-            outs = [c for c in clist if c.parameter_mode == 'OUT']
+            outs = [c for c in clist if c.parameter_mode == "OUT"]
             columns = [
                 ColumnInfo(
                     name=c.parameter_name,
@@ -529,7 +529,7 @@ class PostgreSQL(DBInspector):
                     default=c.parameter_default,
                 )
                 for c in clist
-                if c.parameter_mode == 'IN'
+                if c.parameter_mode == "IN"
             ]
             s = InspectedFunction(
                 schema=f.schema,
@@ -544,11 +544,11 @@ class PostgreSQL(DBInspector):
                 security_type=f.security_type,
                 volatility=f.volatility,
             )
-            identity_arguments = '({})'.format(s.identity_arguments)
+            identity_arguments = "({})".format(s.identity_arguments)
             self.functions[s.quoted_full_name + identity_arguments] = s
 
     def one_schema(self, schema):
-        props = 'schemas relations tables views functions selectables sequences constraints indexes enums extensions'
+        props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions"
         for prop in props.split():
             att = getattr(self, prop)
             filtered = {k: v for k, v in att.items() if v.schema == schema}

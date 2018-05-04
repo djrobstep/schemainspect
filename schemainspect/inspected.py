@@ -6,7 +6,7 @@ class Inspected(AutoRepr):
 
     @property
     def quoted_full_name(self):
-        return '{}.{}'.format(
+        return "{}.{}".format(
             quoted_identifier(self.schema), quoted_identifier(self.name)
         )
 
@@ -16,7 +16,7 @@ class Inspected(AutoRepr):
 
     @property
     def unquoted_full_name(self):
-        return '{}.{}'.format(self.schema, self.name)
+        return "{}.{}".format(self.schema, self.name)
 
     @property
     def quoted_name(self):
@@ -34,7 +34,7 @@ class TableRelated(object):
 
     @property
     def quoted_full_table_name(self):
-        return '{}.{}'.format(
+        return "{}.{}".format(
             quoted_identifier(self.schema), quoted_identifier(self.table_name)
         )
 
@@ -52,7 +52,7 @@ class ColumnInfo(AutoRepr):
         enum=None,
         dbtypestr=None,
     ):
-        self.name = name or ''
+        self.name = name or ""
         self.dbtype = dbtype
         self.dbtypestr = dbtypestr or dbtype
         self.pytype = pytype
@@ -76,7 +76,7 @@ class ColumnInfo(AutoRepr):
 
     def change_enum_to_string_statement(self, table_name):
         if self.is_enum:
-            return 'alter table {} alter column {} set data type varchar;'.format(
+            return "alter table {} alter column {} set data type varchar;".format(
                 table_name, self.quoted_name
             )
 
@@ -85,7 +85,7 @@ class ColumnInfo(AutoRepr):
 
     def change_string_to_enum_statement(self, table_name):
         if self.is_enum:
-            return 'alter table {} alter column {} set data type {} using {}::{};'.format(
+            return "alter table {} alter column {} set data type {} using {}::{};".format(
                 table_name,
                 self.quoted_name,
                 self.dbtypestr,
@@ -97,8 +97,8 @@ class ColumnInfo(AutoRepr):
             raise ValueError
 
     def alter_table_statements(self, other, table_name):
-        prefix = 'alter table {}'.format(table_name)
-        return ['{} {};'.format(prefix, c) for c in self.alter_clauses(other)]
+        prefix = "alter table {}".format(table_name)
+        return ["{} {};".format(prefix, c) for c in self.alter_clauses(other)]
 
     @property
     def quoted_name(self):
@@ -106,39 +106,39 @@ class ColumnInfo(AutoRepr):
 
     @property
     def creation_clause(self):
-        x = '{} {}'.format(self.quoted_name, self.dbtypestr)
+        x = "{} {}".format(self.quoted_name, self.dbtypestr)
         if self.not_null:
-            x += ' not null'
+            x += " not null"
         if self.default:
-            x += ' default {}'.format(self.default)
+            x += " default {}".format(self.default)
         return x
 
     @property
     def add_column_clause(self):
-        return 'add column {}'.format(self.creation_clause)
+        return "add column {}".format(self.creation_clause)
 
     @property
     def drop_column_clause(self):
-        return 'drop column {k}'.format(k=self.quoted_name)
+        return "drop column {k}".format(k=self.quoted_name)
 
     @property
     def alter_not_null_clause(self):
-        keyword = 'set' if self.not_null else 'drop'
-        return 'alter column {} {} not null'.format(self.quoted_name, keyword)
+        keyword = "set" if self.not_null else "drop"
+        return "alter column {} {} not null".format(self.quoted_name, keyword)
 
     @property
     def alter_default_clause(self):
         if self.default:
-            alter = 'alter column {} set default {}'.format(
+            alter = "alter column {} set default {}".format(
                 self.quoted_name, self.default
             )
         else:
-            alter = 'alter column {} drop default'.format(self.quoted_name)
+            alter = "alter column {} drop default".format(self.quoted_name)
         return alter
 
     @property
     def alter_data_type_clause(self):
-        return 'alter column {} set data type {}'.format(
+        return "alter column {} set data type {}".format(
             self.quoted_name, self.dbtypestr
         )
 
@@ -154,7 +154,7 @@ class InspectedSelectable(Inspected):
         definition=None,
         dependent_on=None,
         dependents=None,
-        relationtype='unknown',
+        relationtype="unknown",
     ):
         self.name = name
         self.schema = schema

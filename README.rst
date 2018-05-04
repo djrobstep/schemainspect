@@ -41,6 +41,19 @@ Documentation
 Documentation is a bit patchy at the moment. Watch this space!
 
 
+Author Credits
+--------------
+
+### Initial development, maintenance
+
+- [djrobstep](https://github.com/djrobstep)
+
+### Contributions
+
+- [BenSjoberg](https://github.com/BenSjoberg)
+- [johto](https://github.com/johto)
+
+
 Install
 -------
 

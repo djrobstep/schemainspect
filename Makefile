@@ -7,7 +7,7 @@ targs = --cov-report term-missing --cov schemainspect
 
 pip:
 	pip install --upgrade pip
-	pip install --upgrade -r requirements.txt
+	pip install --upgrade --upgrade-strategy=eager -r requirements.txt
 
 tox:
 	tox tests

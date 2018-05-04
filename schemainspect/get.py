@@ -2,7 +2,7 @@ from .misc import connection_from_s_or_c
 from .inspector import NullInspector
 from .pg import PostgreSQL
 
-SUPPORTED = {'postgresql': PostgreSQL}
+SUPPORTED = {"postgresql": PostgreSQL}
 
 
 def get_inspector(x, schema=None):

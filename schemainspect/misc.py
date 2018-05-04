@@ -18,11 +18,11 @@ class AutoRepr(object):  # pragma: no cover
     def __repr__(self):
         cname = self.__class__.__name__
         vals = [
-            '{}={}'.format(k, repr(v))
+            "{}={}".format(k, repr(v))
             for k, v in sorted(self.__dict__.items())
-            if not k.startswith('_')
+            if not k.startswith("_")
         ]
-        return '{}({})'.format(cname, ', '.join(vals))
+        return "{}({})".format(cname, ", ".join(vals))
 
     def __str__(self):
         return repr(self)
@@ -33,10 +33,10 @@ class AutoRepr(object):  # pragma: no cover
 
 def quoted_identifier(identifier, schema=None):
     try:
-        identifier, remainder = identifier.split('(', 1)
-        remainder = '(' + remainder
+        identifier, remainder = identifier.split("(", 1)
+        remainder = "(" + remainder
     except ValueError:
-        remainder = ''
+        remainder = ""
     s = '"{}"'.format(identifier.replace('"', '""'))
     if schema:
         s = '"{}".{}'.format(schema.replace('"', '""'), s)
@@ -56,4 +56,4 @@ def resource_stream(subpath):
 
 def resource_text(subpath):
     with resource_stream(subpath) as f:
-        return f.read().decode('utf-8')
+        return f.read().decode("utf-8")
