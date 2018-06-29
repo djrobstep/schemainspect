@@ -314,6 +314,36 @@ class InspectedConstraint(Inspected, TableRelated):
         return all(equalities)
 
 
+class InspectedGrant(Inspected):
+
+    def __init__(self, object_type, schema, name, privilege, target_user):
+        self.schema = schema
+        self.object_type = object_type
+        self.name = name
+        self.privilege = privilege.lower()
+        self.target_user = target_user
+
+    @property
+    def drop_statement(self):
+        return "revoke {} on {} {} from {};".format(
+            self.privilege, self.object_type, self.quoted_full_name, self.target_user
+        )
+
+    @property
+    def create_statement(self):
+        return "grant {} on {} {} to {};".format(
+            self.privilege, self.object_type, self.quoted_full_name, self.target_user
+        )
+
+    def __eq__(self, other):
+        equalities = self.schema == other.schema, self.object_type == other.object_type, self.name == other.name, self.privilege == other.privilege, self.target_user == other.target_user
+        return all(equalities)
+
+    @property
+    def key(self):
+        return self.object_type, self.quoted_full_name, self.target_user, self.privilege
+
+
 class PostgreSQL(DBInspector):
 
     def __init__(self, c, include_internal=False):
