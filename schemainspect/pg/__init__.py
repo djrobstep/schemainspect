@@ -595,7 +595,7 @@ class PostgreSQL(DBInspector):
             self.functions[s.quoted_full_name + identity_arguments] = s
 
     def one_schema(self, schema):
-        props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions"
+        props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions grants"
         for prop in props.split():
             att = getattr(self, prop)
             filtered = {k: v for k, v in att.items() if v.schema == schema}
