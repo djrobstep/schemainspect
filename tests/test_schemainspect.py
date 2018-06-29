@@ -24,6 +24,7 @@ from schemainspect.pg import (
     InspectedConstraint,
     InspectedExtension,
     InspectedEnum,
+    InspectedGrant
 )
 
 if not six.PY2:
@@ -137,6 +138,20 @@ def test_inspected():
     x.default = "5"
     x.not_null = True
     assert x.creation_clause == '"a" integer not null default 5'
+
+
+def test_inspected_grant():
+    a = InspectedGrant("table", "public", "test_table", "select", "test_user")
+    a2 = InspectedGrant("table", "public", "test_table", "select", "test_user")
+    b = InspectedGrant("function", "schema", "test_function", "execute", "test_user")
+    b2 = InspectedGrant("function", "schema", "test_function", "modify", "test_user")
+    assert a == a2
+    assert a == a
+    assert a != b
+    assert b != b2
+    assert b2.create_statement == 'grant modify on function "schema"."test_function" to test_user;'
+    assert b.drop_statement == 'revoke execute on function "schema"."test_function" from test_user;'
+    assert a.key == ("table", '"public"."test_table"', "test_user", "select")
 
 
 def test_postgres_objects():
