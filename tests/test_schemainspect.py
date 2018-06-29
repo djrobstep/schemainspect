@@ -252,6 +252,7 @@ def setup_pg_schema(s):
             len         interval hour to minute,
             drange      daterange
         );
+        grant select, update, delete, insert on table films to postgres;
     """
     )
     s.execute("""CREATE VIEW v_films AS (select * from films)""")
@@ -410,6 +411,10 @@ def asserts_pg(i):
     assert t.drop_statement == "drop table {};".format(t_films)
     assert t.alter_table_statement("x") == "alter table {} x;".format(t_films)
     assert n("films_title_idx") in t.indexes
+    g = InspectedGrant("table", "public", "films", "select", "postgres")
+    g = i.grants[g.key]
+    assert g.create_statement == "grant select on table {} to postgres;".format(t_films)
+    assert g.drop_statement == "revoke select on table {} from postgres;".format(t_films)
     ct = i.composite_types[n("ttt")]
     assert (
         [(x.name, x.dbtype) for x in ct.columns.values()]
