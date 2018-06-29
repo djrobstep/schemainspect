@@ -24,6 +24,7 @@ FUNCTIONS_QUERY = resource_text("functions.sql")
 EXTENSIONS_QUERY = resource_text("extensions.sql")
 ENUMS_QUERY = resource_text("enums.sql")
 DEPS_QUERY = resource_text("deps.sql")
+GRANTS_QUERY = resource_text("grants.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
@@ -362,6 +363,7 @@ class PostgreSQL(DBInspector):
         self.ENUMS_QUERY = processed(ENUMS_QUERY)
         self.DEPS_QUERY = processed(DEPS_QUERY)
         self.SCHEMAS_QUERY = processed(SCHEMAS_QUERY)
+        self.GRANTS_QUERY = processed(GRANTS_QUERY)
         super(PostgreSQL, self).__init__(c, include_internal)
 
     def load_all(self):
