@@ -24,7 +24,7 @@ from schemainspect.pg import (
     InspectedConstraint,
     InspectedExtension,
     InspectedEnum,
-    InspectedGrant
+    InspectedPrivilege
 )
 
 if not six.PY2:
@@ -140,11 +140,11 @@ def test_inspected():
     assert x.creation_clause == '"a" integer not null default 5'
 
 
-def test_inspected_grant():
-    a = InspectedGrant("table", "public", "test_table", "select", "test_user")
-    a2 = InspectedGrant("table", "public", "test_table", "select", "test_user")
-    b = InspectedGrant("function", "schema", "test_function", "execute", "test_user")
-    b2 = InspectedGrant("function", "schema", "test_function", "modify", "test_user")
+def test_inspected_privilege():
+    a = InspectedPrivilege("table", "public", "test_table", "select", "test_user")
+    a2 = InspectedPrivilege("table", "public", "test_table", "select", "test_user")
+    b = InspectedPrivilege("function", "schema", "test_function", "execute", "test_user")
+    b2 = InspectedPrivilege("function", "schema", "test_function", "modify", "test_user")
     assert a == a2
     assert a == a
     assert a != b
@@ -411,8 +411,8 @@ def asserts_pg(i):
     assert t.drop_statement == "drop table {};".format(t_films)
     assert t.alter_table_statement("x") == "alter table {} x;".format(t_films)
     assert n("films_title_idx") in t.indexes
-    g = InspectedGrant("table", "public", "films", "select", "postgres")
-    g = i.grants[g.key]
+    g = InspectedPrivilege("table", "public", "films", "select", "postgres")
+    g = i.privileges[g.key]
     assert g.create_statement == "grant select on table {} to postgres;".format(t_films)
     assert g.drop_statement == "revoke select on table {} from postgres;".format(t_films)
     ct = i.composite_types[n("ttt")]

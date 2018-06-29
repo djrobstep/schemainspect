@@ -24,7 +24,7 @@ FUNCTIONS_QUERY = resource_text("functions.sql")
 EXTENSIONS_QUERY = resource_text("extensions.sql")
 ENUMS_QUERY = resource_text("enums.sql")
 DEPS_QUERY = resource_text("deps.sql")
-GRANTS_QUERY = resource_text("grants.sql")
+PRIVILEGES_QUERY = resource_text("privileges.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
@@ -315,7 +315,7 @@ class InspectedConstraint(Inspected, TableRelated):
         return all(equalities)
 
 
-class InspectedGrant(Inspected):
+class InspectedPrivilege(Inspected):
 
     def __init__(self, object_type, schema, name, privilege, target_user):
         self.schema = schema
@@ -363,7 +363,7 @@ class PostgreSQL(DBInspector):
         self.ENUMS_QUERY = processed(ENUMS_QUERY)
         self.DEPS_QUERY = processed(DEPS_QUERY)
         self.SCHEMAS_QUERY = processed(SCHEMAS_QUERY)
-        self.GRANTS_QUERY = processed(GRANTS_QUERY)
+        self.PRIVILEGES_QUERY = processed(PRIVILEGES_QUERY)
         super(PostgreSQL, self).__init__(c, include_internal)
 
     def load_all(self):
@@ -375,17 +375,17 @@ class PostgreSQL(DBInspector):
         self.selectables.update(self.functions)
         self.load_deps()
         self.load_deps_all()
-        self.load_grants()
+        self.load_privileges()
 
     def load_schemas(self):
         q = self.c.execute(self.SCHEMAS_QUERY)
         schemas = [InspectedSchema(schema=each.schema) for each in q]
         self.schemas = od((schema.schema, schema) for schema in schemas)
 
-    def load_grants(self):
-        q = self.c.execute(self.GRANTS_QUERY)
-        grants = [
-            InspectedGrant(
+    def load_privileges(self):
+        q = self.c.execute(self.PRIVILEGES_QUERY)
+        privileges = [
+            InspectedPrivilege(
                 object_type=i.object_type,
                 schema=i.schema,
                 name=i.name,
@@ -394,7 +394,7 @@ class PostgreSQL(DBInspector):
             )
             for i in q
         ]
-        self.grants = od((i.key, i) for i in grants)
+        self.privileges = od((i.key, i) for i in privileges)
 
     def load_deps(self):
         q = self.c.execute(self.DEPS_QUERY)
@@ -595,7 +595,7 @@ class PostgreSQL(DBInspector):
             self.functions[s.quoted_full_name + identity_arguments] = s
 
     def one_schema(self, schema):
-        props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions grants"
+        props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges"
         for prop in props.split():
             att = getattr(self, prop)
             filtered = {k: v for k, v in att.items() if v.schema == schema}
