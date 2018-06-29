@@ -375,11 +375,26 @@ class PostgreSQL(DBInspector):
         self.selectables.update(self.functions)
         self.load_deps()
         self.load_deps_all()
+        self.load_grants()
 
     def load_schemas(self):
         q = self.c.execute(self.SCHEMAS_QUERY)
         schemas = [InspectedSchema(schema=each.schema) for each in q]
         self.schemas = od((schema.schema, schema) for schema in schemas)
+
+    def load_grants(self):
+        q = self.c.execute(self.GRANTS_QUERY)
+        grants = [
+            InspectedGrant(
+                object_type=i.object_type,
+                schema=i.schema,
+                name=i.name,
+                privilege=i.privilege,
+                target_user=i.user
+            )
+            for i in q
+        ]
+        self.grants = od((i.key, i) for i in grants)
 
     def load_deps(self):
         q = self.c.execute(self.DEPS_QUERY)
