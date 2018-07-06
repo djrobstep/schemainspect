@@ -3,7 +3,6 @@ from collections import OrderedDict as od
 
 
 class Inspected(AutoRepr):
-
     @property
     def quoted_full_name(self):
         return "{}.{}".format(
@@ -31,7 +30,6 @@ class Inspected(AutoRepr):
 
 
 class TableRelated(object):
-
     @property
     def quoted_full_table_name(self):
         return "{}.{}".format(
@@ -40,7 +38,6 @@ class TableRelated(object):
 
 
 class ColumnInfo(AutoRepr):
-
     def __init__(
         self,
         name,
@@ -62,7 +59,15 @@ class ColumnInfo(AutoRepr):
         self.enum = enum
 
     def __eq__(self, other):
-        return self.name == other.name and self.dbtype == other.dbtype and self.dbtypestr == other.dbtypestr and self.pytype == other.pytype and self.default == other.default and self.not_null == other.not_null and self.enum == other.enum
+        return (
+            self.name == other.name
+            and self.dbtype == other.dbtype
+            and self.dbtypestr == other.dbtypestr
+            and self.pytype == other.pytype
+            and self.default == other.default
+            and self.not_null == other.not_null
+            and self.enum == other.enum
+        )
 
     def alter_clauses(self, other):
         clauses = []
@@ -144,7 +149,6 @@ class ColumnInfo(AutoRepr):
 
 
 class InspectedSelectable(Inspected):
-
     def __init__(
         self,
         name,
@@ -170,7 +174,13 @@ class InspectedSelectable(Inspected):
         self.indexes = od()
 
     def __eq__(self, other):
-        equalities = type(self) == type(
-            other
-        ), self.relationtype == other.relationtype, self.name == other.name, self.schema == other.schema, self.columns == other.columns, self.inputs == other.inputs, self.definition == other.definition
+        equalities = (
+            type(self) == type(other),
+            self.relationtype == other.relationtype,
+            self.name == other.name,
+            self.schema == other.schema,
+            self.columns == other.columns,
+            self.inputs == other.inputs,
+            self.definition == other.definition,
+        )
         return all(equalities)

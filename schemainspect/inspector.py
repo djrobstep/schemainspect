@@ -17,7 +17,6 @@ def to_pytype(sqla_dialect, typename):
 
 
 class DBInspector(object):
-
     def __init__(self, c, include_internal=False):
         self.c = c
         self.engine = self.c.engine
@@ -30,7 +29,6 @@ class DBInspector(object):
 
 
 class NullInspector(DBInspector):
-
     def __init__(self):
         pass
 

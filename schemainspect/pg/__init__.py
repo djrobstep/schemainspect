@@ -28,7 +28,6 @@ PRIVILEGES_QUERY = resource_text("privileges.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
-
     @property
     def create_statement(self):
         n = self.quoted_full_name
@@ -75,7 +74,6 @@ class InspectedSelectable(BaseInspectedSelectable):
 
 
 class InspectedFunction(InspectedSelectable):
-
     def __init__(
         self,
         name,
@@ -126,11 +124,18 @@ class InspectedFunction(InspectedSelectable):
         return "drop function if exists {} cascade;".format(self.signature)
 
     def __eq__(self, other):
-        return self.signature == other.signature and self.result_string == other.result_string and self.definition == other.definition and self.language == other.language and self.volatility == other.volatility and self.strictness == other.strictness and self.security_type == other.security_type
+        return (
+            self.signature == other.signature
+            and self.result_string == other.result_string
+            and self.definition == other.definition
+            and self.language == other.language
+            and self.volatility == other.volatility
+            and self.strictness == other.strictness
+            and self.security_type == other.security_type
+        )
 
 
 class InspectedIndex(Inspected, TableRelated):
-
     def __init__(self, name, schema, table_name, definition=None):
         self.name = name
         self.schema = schema
@@ -146,12 +151,16 @@ class InspectedIndex(Inspected, TableRelated):
         return "{};".format(self.definition)
 
     def __eq__(self, other):
-        equalities = self.name == other.name, self.schema == other.schema, self.table_name == other.table_name, self.definition == other.definition
+        equalities = (
+            self.name == other.name,
+            self.schema == other.schema,
+            self.table_name == other.table_name,
+            self.definition == other.definition,
+        )
         return all(equalities)
 
 
 class InspectedSequence(Inspected):
-
     def __init__(self, name, schema):
         self.name = name
         self.schema = schema
@@ -170,7 +179,6 @@ class InspectedSequence(Inspected):
 
 
 class InspectedEnum(Inspected):
-
     def __init__(self, name, schema, elements):
         self.name = name
         self.schema = schema
@@ -219,12 +227,15 @@ class InspectedEnum(Inspected):
         return [e for e in new.elements if e in old] == old
 
     def __eq__(self, other):
-        equalities = self.name == other.name, self.schema == other.schema, self.elements == other.elements
+        equalities = (
+            self.name == other.name,
+            self.schema == other.schema,
+            self.elements == other.elements,
+        )
         return all(equalities)
 
 
 class InspectedSchema(Inspected):
-
     def __init__(self, schema):
         self.schema = schema
         self.name = None
@@ -242,7 +253,6 @@ class InspectedSchema(Inspected):
 
 
 class InspectedExtension(Inspected):
-
     def __init__(self, name, schema, version):
         self.name = name
         self.schema = schema
@@ -265,12 +275,15 @@ class InspectedExtension(Inspected):
         )
 
     def __eq__(self, other):
-        equalities = self.name == other.name, self.schema == other.schema, self.version == other.version
+        equalities = (
+            self.name == other.name,
+            self.schema == other.schema,
+            self.version == other.version,
+        )
         return all(equalities)
 
 
 class InspectedConstraint(Inspected, TableRelated):
-
     def __init__(self, name, schema, constraint_type, table_name, definition, index):
         self.name = name
         self.schema = schema
@@ -311,12 +324,17 @@ class InspectedConstraint(Inspected, TableRelated):
         )
 
     def __eq__(self, other):
-        equalities = self.name == other.name, self.schema == other.schema, self.table_name == other.table_name, self.definition == other.definition, self.index == other.index
+        equalities = (
+            self.name == other.name,
+            self.schema == other.schema,
+            self.table_name == other.table_name,
+            self.definition == other.definition,
+            self.index == other.index,
+        )
         return all(equalities)
 
 
 class InspectedPrivilege(Inspected):
-
     def __init__(self, object_type, schema, name, privilege, target_user):
         self.schema = schema
         self.object_type = object_type
@@ -337,7 +355,13 @@ class InspectedPrivilege(Inspected):
         )
 
     def __eq__(self, other):
-        equalities = self.schema == other.schema, self.object_type == other.object_type, self.name == other.name, self.privilege == other.privilege, self.target_user == other.target_user
+        equalities = (
+            self.schema == other.schema,
+            self.object_type == other.object_type,
+            self.name == other.name,
+            self.privilege == other.privilege,
+            self.target_user == other.target_user,
+        )
         return all(equalities)
 
     @property
@@ -346,9 +370,7 @@ class InspectedPrivilege(Inspected):
 
 
 class PostgreSQL(DBInspector):
-
     def __init__(self, c, include_internal=False):
-
         def processed(q):
             if not include_internal:
                 q = q.replace("-- SKIP_INTERNAL", "")
@@ -390,7 +412,7 @@ class PostgreSQL(DBInspector):
                 schema=i.schema,
                 name=i.name,
                 privilege=i.privilege,
-                target_user=i.user
+                target_user=i.user,
             )
             for i in q
         ]
@@ -409,7 +431,6 @@ class PostgreSQL(DBInspector):
             self.selectables[x_dependent_on].dependents.sort()
 
     def load_deps_all(self):
-
         def get_related_for_item(item, att):
             related = [self.selectables[_] for _ in getattr(item, att)]
             return [item.signature] + [
@@ -602,6 +623,13 @@ class PostgreSQL(DBInspector):
             setattr(self, prop, filtered)
 
     def __eq__(self, other):
-        return type(self) == type(
-            other
-        ) and self.schemas == other.schemas and self.relations == other.relations and self.sequences == other.sequences and self.enums == other.enums and self.constraints == other.constraints and self.extensions == other.extensions and self.functions == other.functions
+        return (
+            type(self) == type(other)
+            and self.schemas == other.schemas
+            and self.relations == other.relations
+            and self.sequences == other.sequences
+            and self.enums == other.enums
+            and self.constraints == other.constraints
+            and self.extensions == other.extensions
+            and self.functions == other.functions
+        )

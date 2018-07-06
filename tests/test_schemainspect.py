@@ -24,7 +24,7 @@ from schemainspect.pg import (
     InspectedConstraint,
     InspectedExtension,
     InspectedEnum,
-    InspectedPrivilege
+    InspectedPrivilege,
 )
 
 if not six.PY2:
@@ -53,7 +53,7 @@ FILMS_COLUMNS = od(
         ("date_prod", ColumnInfo("date_prod", "date", datetime.date)),
         ("kind", ColumnInfo("kind", CV, str, dbtypestr=CV10)),
         ("len", ColumnInfo("len", INT, TD, dbtypestr=INTHM)),
-        (u"drange", ColumnInfo("drange", "daterange", PGRANGE)),
+        ("drange", ColumnInfo("drange", "daterange", PGRANGE)),
     ]
 )
 FILMSF_COLUMNS = od(
@@ -102,23 +102,17 @@ def test_basic_schemainspect():
     assert a != b
     assert b != b2
     alter = b2.alter_table_statements(b, "t")
-    assert (
-        alter
-        == [
-            "alter table t alter column \"b\" set default 'd'::text;",
-            'alter table t alter column "b" set not null;',
-            'alter table t alter column "b" set data type text;',
-        ]
-    )
+    assert alter == [
+        "alter table t alter column \"b\" set default 'd'::text;",
+        'alter table t alter column "b" set not null;',
+        'alter table t alter column "b" set data type text;',
+    ]
     alter = b.alter_table_statements(b2, "t")
-    assert (
-        alter
-        == [
-            'alter table t alter column "b" drop default;',
-            'alter table t alter column "b" drop not null;',
-            'alter table t alter column "b" set data type varchar(10);',
-        ]
-    )
+    assert alter == [
+        'alter table t alter column "b" drop default;',
+        'alter table t alter column "b" drop not null;',
+        'alter table t alter column "b" set data type varchar(10);',
+    ]
     b.add_column_clause == 'add column "b"'
     b.drop_column_clause == 'drop column "b"'
     with temporary_database("sqlite") as dburl:
@@ -143,14 +137,24 @@ def test_inspected():
 def test_inspected_privilege():
     a = InspectedPrivilege("table", "public", "test_table", "select", "test_user")
     a2 = InspectedPrivilege("table", "public", "test_table", "select", "test_user")
-    b = InspectedPrivilege("function", "schema", "test_function", "execute", "test_user")
-    b2 = InspectedPrivilege("function", "schema", "test_function", "modify", "test_user")
+    b = InspectedPrivilege(
+        "function", "schema", "test_function", "execute", "test_user"
+    )
+    b2 = InspectedPrivilege(
+        "function", "schema", "test_function", "modify", "test_user"
+    )
     assert a == a2
     assert a == a
     assert a != b
     assert b != b2
-    assert b2.create_statement == 'grant modify on function "schema"."test_function" to test_user;'
-    assert b.drop_statement == 'revoke execute on function "schema"."test_function" from test_user;'
+    assert (
+        b2.create_statement
+        == 'grant modify on function "schema"."test_function" to test_user;'
+    )
+    assert (
+        b.drop_statement
+        == 'revoke execute on function "schema"."test_function" from test_user;'
+    )
     assert a.key == ("table", '"public"."test_table"', "test_user", "select")
 
 
@@ -205,14 +209,11 @@ def test_postgres_objects():
         i.change_statements(i2)
     i2.elements = ["a0", "a", "a1", "b", "c", "d"]
     assert i.can_be_changed_to(i2)
-    assert (
-        i.change_statements(i2)
-        == [
-            "alter type \"schema\".\"name\" add value 'a0' before 'a'",
-            "alter type \"schema\".\"name\" add value 'a1' after 'a'",
-            "alter type \"schema\".\"name\" add value 'd' after 'c'",
-        ]
-    )
+    assert i.change_statements(i2) == [
+        "alter type \"schema\".\"name\" add value 'a0' before 'a'",
+        "alter type \"schema\".\"name\" add value 'a1' after 'a'",
+        "alter type \"schema\".\"name\" add value 'd' after 'c'",
+    ]
     c = InspectedConstraint(
         constraint_type="PRIMARY KEY",
         definition="PRIMARY KEY (code)",
@@ -366,9 +367,8 @@ def asserts_pg(i):
     assert list(i.materialized_views.keys()) == [mv_films]
     assert mv.columns == FILMS_COLUMNS
     assert mv.create_statement == MVDEF
-    assert (
-        mv.drop_statement
-        == "drop materialized view if exists {} cascade;".format(mv_films)
+    assert mv.drop_statement == "drop materialized view if exists {} cascade;".format(
+        mv_films
     )
     assert n("mv_films_title_idx") in mv.indexes
     films_f = n("films_f") + "(d date, def_t text, def_d date)"
@@ -396,10 +396,10 @@ def asserts_pg(i):
         f.drop_statement
         == 'drop function if exists "public"."films_f"(d date, def_t text, def_d date) cascade;'
     )
-    assert (
-        [e.quoted_full_name for e in i.extensions.values()]
-        == [n("plpgsql", schema="pg_catalog"), n("pg_trgm")]
-    )
+    assert [e.quoted_full_name for e in i.extensions.values()] == [
+        n("plpgsql", schema="pg_catalog"),
+        n("pg_trgm"),
+    ]
     cons = i.constraints['"public"."films"."firstkey"']
     assert (
         cons.create_statement
@@ -414,12 +414,14 @@ def asserts_pg(i):
     g = InspectedPrivilege("table", "public", "films", "select", "postgres")
     g = i.privileges[g.key]
     assert g.create_statement == "grant select on table {} to postgres;".format(t_films)
-    assert g.drop_statement == "revoke select on table {} from postgres;".format(t_films)
-    ct = i.composite_types[n("ttt")]
-    assert (
-        [(x.name, x.dbtype) for x in ct.columns.values()]
-        == [("a", "integer"), ("b", "text")]
+    assert g.drop_statement == "revoke select on table {} from postgres;".format(
+        t_films
     )
+    ct = i.composite_types[n("ttt")]
+    assert [(x.name, x.dbtype) for x in ct.columns.values()] == [
+        ("a", "integer"),
+        ("b", "text"),
+    ]
     assert (
         ct.create_statement == 'create type "public"."ttt" as ("a" integer, "b" text);'
     )
@@ -451,7 +453,9 @@ def test_postgres_inspect(db):
 
 
 def asserts_pg_singleschema(i, schema_name):
-    for prop in "schemas relations tables views functions selectables sequences enums constraints".split():
+    for (
+        prop
+    ) in "schemas relations tables views functions selectables sequences enums constraints".split():
         att = getattr(i, prop)
         for k, v in att.items():
             assert v.schema == schema_name

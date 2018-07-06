@@ -14,7 +14,6 @@ def connection_from_s_or_c(s_or_c):  # pragma: no cover
 
 @six.python_2_unicode_compatible
 class AutoRepr(object):  # pragma: no cover
-
     def __repr__(self):
         cname = self.__class__.__name__
         vals = [
