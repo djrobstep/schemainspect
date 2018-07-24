@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import json
+
 from ..inspector import DBInspector
 from ..inspected import ColumnInfo, Inspected, TableRelated
 from ..inspected import InspectedSelectable as BaseInspectedSelectable
@@ -16,6 +18,7 @@ returns {result_string} as
 $${definition}$$
 language {language} {volatility} {strictness} {security_type};"""
 ALL_RELATIONS_QUERY = resource_text("relations.sql")
+TYPES_QUERY = resource_text("types.sql")
 SCHEMAS_QUERY = resource_text("schemas.sql")
 INDEXES_QUERY = resource_text("indexes.sql")
 SEQUENCES_QUERY = resource_text("sequences.sql")
@@ -252,6 +255,38 @@ class InspectedSchema(Inspected):
         return self.schema == other.schema
 
 
+class InspectedType(Inspected):
+    def __init__(self, schema, name, columns):
+        self.schema = schema
+        self.name = name
+        self.columns = columns
+
+    @property
+    def drop_statement(self):
+        return "drop type {};".format(self.name)
+
+    @property
+    def create_statement(self):
+        sql = "create type {} as (\n ".format(self.name)
+        sql += ',\n '.join(
+            "{} {}".format(
+                quoted_identifier(name),
+                type
+            )
+            for name, type in self.columns.items()
+        )
+        sql = sql[:-1]
+        sql += "\n);"
+        return sql
+
+    def __eq__(self, other):
+        return (
+            self.schema == other.schema
+            and self.name == other.name
+            and json.dumps(self.columns) == json.dumps(other.columns)
+        )
+
+
 class InspectedExtension(Inspected):
     def __init__(self, name, schema, version):
         self.name = name
@@ -377,6 +412,7 @@ class PostgreSQL(DBInspector):
             return q
 
         self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY)
+        self.TYPES_QUERY = processed(TYPES_QUERY)
         self.INDEXES_QUERY = processed(INDEXES_QUERY)
         self.SEQUENCES_QUERY = processed(SEQUENCES_QUERY)
         self.CONSTRAINTS_QUERY = processed(CONSTRAINTS_QUERY)
@@ -391,6 +427,7 @@ class PostgreSQL(DBInspector):
     def load_all(self):
         self.load_schemas()
         self.load_all_relations()
+        self.load_types()
         self.load_functions()
         self.selectables = od()
         self.selectables.update(self.relations)
@@ -403,6 +440,22 @@ class PostgreSQL(DBInspector):
         q = self.c.execute(self.SCHEMAS_QUERY)
         schemas = [InspectedSchema(schema=each.schema) for each in q]
         self.schemas = od((schema.schema, schema) for schema in schemas)
+
+    def load_types(self):
+        q = self.c.execute(self.TYPES_QUERY)
+        types = [
+            InspectedType(
+                schema=t[0],
+                name=t[1],
+                columns={
+                    c['attribute']: c['type']
+                    for c in t[6]
+                }
+            )
+            for t in q
+            if len(t[6]) > 0
+        ]
+        self.types = od((t.name, t) for t in types)
 
     def load_privileges(self):
         q = self.c.execute(self.PRIVILEGES_QUERY)
@@ -632,4 +685,5 @@ class PostgreSQL(DBInspector):
             and self.constraints == other.constraints
             and self.extensions == other.extensions
             and self.functions == other.functions
+            and self.types == other.types
         )
