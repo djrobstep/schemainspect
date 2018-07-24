@@ -140,7 +140,7 @@ class InspectedFunction(InspectedSelectable):
         )
 
 
-class InspectedTrigger(InspectedSelectable):
+class InspectedTrigger(Inspected):
     def __init__(
         self,
         name,
@@ -153,6 +153,8 @@ class InspectedTrigger(InspectedSelectable):
         orientation,
         timing,
     ):
+        self.name = name
+        self.schema = schema
         self.manipulation = manipulation
         self.object_schema = object_schema
         self.object_table = object_table
@@ -160,18 +162,6 @@ class InspectedTrigger(InspectedSelectable):
         self.statement = statement
         self.orientation = orientation
         self.timing = timing
-        super(InspectedTrigger, self).__init__(
-            name=name,
-            schema=schema,
-            columns=[],
-            inputs=[],
-            definition='',
-            relationtype="f",
-        )
-
-    @property
-    def signature(self):
-        return "{}".format(self.quoted_full_name)
 
     @property
     def create_statement(self):
@@ -202,7 +192,7 @@ class InspectedTrigger(InspectedSelectable):
 
     def __eq__(self, other):
         return (
-            self.signature == other.signature
+            self.name == other.name
             and self.manipulation == other.manipulation
             and self.object_schema == other.object_schema
             and self.object_table == other.object_table
@@ -475,7 +465,6 @@ class PostgreSQL(DBInspector):
         self.selectables = od()
         self.selectables.update(self.relations)
         self.selectables.update(self.functions)
-        self.selectables.update(self.triggers)
         self.load_deps()
         self.load_deps_all()
         self.load_privileges()
@@ -713,7 +702,7 @@ class PostgreSQL(DBInspector):
                 orientation=t.action_orientation,
                 timing=t.action_timing,
             )
-            self.functions[s.quoted_full_name] = s
+            self.triggers[s.quoted_full_name] = s
 
     def one_schema(self, schema):
         props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges"
