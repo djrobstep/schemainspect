@@ -6,6 +6,7 @@ from ..inspected import InspectedSelectable as BaseInspectedSelectable
 from ..misc import resource_text, quoted_identifier
 from collections import OrderedDict as od
 from itertools import groupby
+from sqlalchemy import text
 
 CREATE_TABLE = """create table {} (
     {}
@@ -374,6 +375,7 @@ class PostgreSQL(DBInspector):
         def processed(q):
             if not include_internal:
                 q = q.replace("-- SKIP_INTERNAL", "")
+            q = text(q)
             return q
 
         self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY)
