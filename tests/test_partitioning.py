@@ -5,6 +5,10 @@ from schemainspect import get_inspector
 
 def test_partitions(db):
     with S(db) as s:
+        i = get_inspector(s)
+
+        if i.pg_version <= 9:
+            return
         s.execute(
             """
 CREATE TABLE measurement (
@@ -20,7 +24,7 @@ CREATE TABLE measurement_y2006 PARTITION OF measurement
         """
         )
 
-    i = get_inspector(s)
+        i = get_inspector(s)
     assert list(i.tables) == ['"public"."measurement"', '"public"."measurement_y2006"']
 
     m2006 = i.tables['"public"."measurement_y2006"']

@@ -22,4 +22,4 @@ def test_inspected_privilege():
         b.drop_statement
         == 'revoke execute on function "schema"."test_function" from "test_user";'
     )
-    assert a.key == ("table", '"public"."test_table"', 'test_user', "select")
+    assert a.key == ("table", '"public"."test_table"', "test_user", "select")

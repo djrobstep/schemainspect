@@ -268,7 +268,7 @@ def setup_pg_schema(s):
             language sql;
         """
     )
-    s.execute("comment on function films_f is 'films_f comment'")
+    s.execute("comment on function films_f(date, text, date) is 'films_f comment'")
     s.execute(
         """
         CREATE OR REPLACE FUNCTION inc_f(integer) RETURNS integer AS $$
@@ -444,7 +444,9 @@ def asserts_pg(i):
     # privileges
     g = InspectedPrivilege("table", "public", "films", "select", "postgres")
     g = i.privileges[g.key]
-    assert g.create_statement == 'grant select on table {} to "postgres";'.format(t_films)
+    assert g.create_statement == 'grant select on table {} to "postgres";'.format(
+        t_films
+    )
     assert g.drop_statement == 'revoke select on table {} from "postgres";'.format(
         t_films
     )

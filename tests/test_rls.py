@@ -25,6 +25,11 @@ SELECT 1 FROM pg_roles WHERE rolname=:rolename
 
 def test_rls(db):
     with S(db) as s:
+        i = get_inspector(s)
+
+        if i.pg_version <= 9:
+            return
+
         s.execute(
             """
 CREATE TABLE t(id uuid, a text, b decimal);
