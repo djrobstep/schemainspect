@@ -25,6 +25,7 @@ EXTENSIONS_QUERY = resource_text("extensions.sql")
 ENUMS_QUERY = resource_text("enums.sql")
 DEPS_QUERY = resource_text("deps.sql")
 PRIVILEGES_QUERY = resource_text("privileges.sql")
+COMMENTS_QUERY = resource_text("comments.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
@@ -369,6 +370,45 @@ class InspectedPrivilege(Inspected):
         return self.object_type, self.quoted_full_name, self.target_user, self.privilege
 
 
+class InspectedComment(Inspected):
+    def __init__(self, schema, object_type, ident, comment):
+        self.schema = schema
+        self.object_type = object_type
+        self.ident = ident
+        self.comment = comment
+
+    @property
+    def drop_statement(self):
+        return "comment on {} {} is null;".format(
+            self.object_type,
+            self.ident
+        )
+
+    @property
+    def create_statement(self):
+        return "comment on {} {} is '{}';".format(
+            self.object_type,
+            self.ident,
+            self.comment
+        )
+
+    @property
+    def key(self):
+        return '{}.{}.{}'.format(
+            self.schema,
+            self.object_type,
+            self.ident
+        )
+
+    def __eq__(self, other):
+        return (
+            self.schema == other.schema
+            and self.object_type == other.object_type
+            and self.ident == other.ident
+            and self.comment == other.comment
+        )
+
+
 class PostgreSQL(DBInspector):
     def __init__(self, c, include_internal=False):
         def processed(q):
@@ -386,6 +426,7 @@ class PostgreSQL(DBInspector):
         self.DEPS_QUERY = processed(DEPS_QUERY)
         self.SCHEMAS_QUERY = processed(SCHEMAS_QUERY)
         self.PRIVILEGES_QUERY = processed(PRIVILEGES_QUERY)
+        self.COMMENTS_QUERY = processed(COMMENTS_QUERY)
         super(PostgreSQL, self).__init__(c, include_internal)
 
     def load_all(self):
@@ -398,6 +439,7 @@ class PostgreSQL(DBInspector):
         self.load_deps()
         self.load_deps_all()
         self.load_privileges()
+        self.load_comments()
 
     def load_schemas(self):
         q = self.c.execute(self.SCHEMAS_QUERY)
@@ -417,6 +459,19 @@ class PostgreSQL(DBInspector):
             for i in q
         ]
         self.privileges = od((i.key, i) for i in privileges)
+
+    def load_comments(self):
+        q = self.c.execute(self.COMMENTS_QUERY)
+        comments = [
+            InspectedComment(
+                schema=c.schema,
+                object_type=c.object_type,
+                ident=c.ident,
+                comment=c.comment
+            )
+            for c in q
+        ]
+        self.comments = od((i.key, i) for i in comments)
 
     def load_deps(self):
         q = self.c.execute(self.DEPS_QUERY)
@@ -632,4 +687,5 @@ class PostgreSQL(DBInspector):
             and self.constraints == other.constraints
             and self.extensions == other.extensions
             and self.functions == other.functions
+            and self.comments == other.comments
         )
