@@ -496,6 +496,7 @@ class PostgreSQL(DBInspector):
                     enum=get_enum(c.enum_name, c.enum_schema),
                 )
                 for c in clist
+                if c.position_number
             ]
             s = InspectedSelectable(
                 name=f.name,
