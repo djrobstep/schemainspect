@@ -59,14 +59,13 @@ select
     e.schema as enum_schema
 FROM
     r
-    inner join pg_catalog.pg_attribute a
-        on r.oid = a.attrelid
+    left join pg_catalog.pg_attribute a
+        on r.oid = a.attrelid and a.attnum > 0
     left join pg_catalog.pg_attrdef ad
         on a.attrelid = ad.adrelid
         and a.attnum = ad.adnum
     left join enums e
       on a.atttypid = e.enum_oid
-where a.attnum > 0
+where a.attisdropped is not true
 -- SKIP_INTERNAL and r.schema not in ('pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
-AND    NOT a.attisdropped  -- no dead columns
 order by relationtype, r.schema, r.name, position_number;

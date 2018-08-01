@@ -240,6 +240,7 @@ def test_postgres_objects():
 
 
 def setup_pg_schema(s):
+    s.execute("create table emptytable()")
     s.execute("create extension pg_trgm")
     s.execute("create schema otherschema")
     s.execute(
@@ -407,6 +408,8 @@ def asserts_pg(i):
     )
     t_films = n("films")
     t = i.tables[t_films]
+    empty = i.tables[n("emptytable")]
+    assert empty.columns == od()
     assert t.create_statement == T_CREATE
     assert t.drop_statement == "drop table {};".format(t_films)
     assert t.alter_table_statement("x") == "alter table {} x;".format(t_films)
