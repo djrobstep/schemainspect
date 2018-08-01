@@ -8,8 +8,7 @@ from collections import OrderedDict as od
 from itertools import groupby
 from sqlalchemy import text
 
-CREATE_TABLE = """create table {} (
-    {}
+CREATE_TABLE = """create table {} ({}
 );
 """
 CREATE_FUNCTION_FORMAT = """create or replace function {signature}
@@ -33,7 +32,10 @@ class InspectedSelectable(BaseInspectedSelectable):
     def create_statement(self):
         n = self.quoted_full_name
         if self.relationtype == "r":
-            colspec = ",\n    ".join(c.creation_clause for c in self.columns.values())
+            colspec = ",\n".join('    ' + c.creation_clause for c in self.columns.values())
+            if colspec:
+                colspec = '\n' + colspec
+
             create_statement = CREATE_TABLE.format(n, colspec)
         elif self.relationtype == "v":
             create_statement = "create view {} as {}\n".format(n, self.definition)
