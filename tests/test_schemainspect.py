@@ -410,9 +410,12 @@ def asserts_pg(i):
     t = i.tables[t_films]
     empty = i.tables[n("emptytable")]
     assert empty.columns == od()
-    assert empty.create_statement == """create table "public"."emptytable" (
+    assert (
+        empty.create_statement
+        == """create table "public"."emptytable" (
 );
 """
+    )
     assert t.create_statement == T_CREATE
     assert t.drop_statement == "drop table {};".format(t_films)
     assert t.alter_table_statement("x") == "alter table {} x;".format(t_films)

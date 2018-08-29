@@ -179,7 +179,7 @@ class InspectedSelectable(Inspected):
             self.relationtype == other.relationtype,
             self.name == other.name,
             self.schema == other.schema,
-            self.columns == other.columns,
+            dict(self.columns) == dict(other.columns),
             self.inputs == other.inputs,
             self.definition == other.definition,
         )
