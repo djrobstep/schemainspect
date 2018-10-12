@@ -66,10 +66,11 @@ d1 = ColumnInfo("d", "date", datetime.date)
 d2 = ColumnInfo("def_t", "text", str, default="NULL::text")
 d3 = ColumnInfo("def_d", "date", datetime.date, default="'2014-01-01'::date")
 FILMSF_INPUTS = [d1, d2, d3]
-FDEF = """create or replace function "public"."films_f"(d date, def_t text, def_d date)
-returns TABLE(title character varying, release_date date) as
-$$select 'a'::varchar, '2014-01-01'::date$$
-language SQL VOLATILE CALLED ON NULL INPUT SECURITY INVOKER;"""
+FDEF = """CREATE OR REPLACE FUNCTION public.films_f(d date, def_t text DEFAULT NULL::text, def_d date DEFAULT '2014-01-01'::date)
+ RETURNS TABLE(title character varying, release_date date)
+ LANGUAGE sql
+AS $function$select 'a'::varchar, '2014-01-01'::date$function$
+"""
 VDEF = """create view "public"."v_films" as  SELECT films.code,
     films.title,
     films.did,
@@ -421,7 +422,7 @@ def asserts_pg(i):
     assert t.alter_table_statement("x") == "alter table {} x;".format(t_films)
     assert n("films_title_idx") in t.indexes
     g = InspectedPrivilege("table", "public", "films", "select", "postgres")
-    g = i.privileges[g.key]
+    # g = i.privileges[g.key]
     assert g.create_statement == "grant select on table {} to postgres;".format(t_films)
     assert g.drop_statement == "revoke select on table {} from postgres;".format(
         t_films
