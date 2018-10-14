@@ -422,7 +422,7 @@ def asserts_pg(i):
     assert t.alter_table_statement("x") == "alter table {} x;".format(t_films)
     assert n("films_title_idx") in t.indexes
     g = InspectedPrivilege("table", "public", "films", "select", "postgres")
-    # g = i.privileges[g.key]
+    g = i.privileges[g.key]
     assert g.create_statement == "grant select on table {} to postgres;".format(t_films)
     assert g.drop_statement == "revoke select on table {} from postgres;".format(
         t_films
