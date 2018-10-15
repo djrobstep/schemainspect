@@ -66,10 +66,11 @@ d1 = ColumnInfo("d", "date", datetime.date)
 d2 = ColumnInfo("def_t", "text", str, default="NULL::text")
 d3 = ColumnInfo("def_d", "date", datetime.date, default="'2014-01-01'::date")
 FILMSF_INPUTS = [d1, d2, d3]
-FDEF = """create or replace function "public"."films_f"(d date, def_t text, def_d date)
-returns TABLE(title character varying, release_date date) as
-$$select 'a'::varchar, '2014-01-01'::date$$
-language SQL VOLATILE CALLED ON NULL INPUT SECURITY INVOKER;"""
+FDEF = """CREATE OR REPLACE FUNCTION public.films_f(d date, def_t text DEFAULT NULL::text, def_d date DEFAULT '2014-01-01'::date)
+ RETURNS TABLE(title character varying, release_date date)
+ LANGUAGE sql
+AS $function$select 'a'::varchar, '2014-01-01'::date$function$
+"""
 VDEF = """create view "public"."v_films" as  SELECT films.code,
     films.title,
     films.did,

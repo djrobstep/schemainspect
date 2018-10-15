@@ -90,6 +90,7 @@ class InspectedFunction(InspectedSelectable):
         identity_arguments,
         result_string,
         language,
+        full_definition,
     ):
         self.identity_arguments = identity_arguments
         self.result_string = result_string
@@ -97,6 +98,7 @@ class InspectedFunction(InspectedSelectable):
         self.volatility = volatility
         self.strictness = strictness
         self.security_type = security_type
+        self.full_definition = full_definition
         super(InspectedFunction, self).__init__(
             name=name,
             schema=schema,
@@ -112,6 +114,8 @@ class InspectedFunction(InspectedSelectable):
 
     @property
     def create_statement(self):
+        return self.full_definition
+        """
         return CREATE_FUNCTION_FORMAT.format(
             signature=self.signature,
             result_string=self.result_string,
@@ -121,7 +125,7 @@ class InspectedFunction(InspectedSelectable):
             strictness=self.strictness,
             security_type=self.security_type,
         )
-
+        """
     @property
     def drop_statement(self):
         return "drop function if exists {} cascade;".format(self.signature)
@@ -592,6 +596,7 @@ class PostgreSQL(DBInspector):
                         name=f.name,
                         dbtype=f.data_type,
                         pytype=self.to_pytype(f.returntype),
+                        default=f.parameter_default,
                     )
                 ]
             plist = [
@@ -616,6 +621,7 @@ class PostgreSQL(DBInspector):
                 strictness=f.strictness,
                 security_type=f.security_type,
                 volatility=f.volatility,
+                full_definition=f.full_definition
             )
             identity_arguments = "({})".format(s.identity_arguments)
             self.functions[s.quoted_full_name + identity_arguments] = s
