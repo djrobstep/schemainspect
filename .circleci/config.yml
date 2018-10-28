@@ -4,7 +4,7 @@ jobs:
     working_directory: ~/circleci
     docker:
       - image: circleci/python:3.7.0-browsers
-      - image: circleci/postgres:10-postgis
+      - image: circleci/postgres:10
         environment:
           POSTGRES_USER: circleci
           POSTGRES_DB: circleci
