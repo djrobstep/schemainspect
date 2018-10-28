@@ -40,3 +40,5 @@ nosetests.xml
 .cache
 
 scratch
+poetry.lock
+.DS_Store
