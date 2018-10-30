@@ -114,7 +114,7 @@ class InspectedFunction(InspectedSelectable):
 
     @property
     def create_statement(self):
-        return self.full_definition
+        return self.full_definition + ';'
         """
         return CREATE_FUNCTION_FORMAT.format(
             signature=self.signature,
