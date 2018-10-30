@@ -1,5 +1,4 @@
-schemainspect: SQL Schema Inspection
-====================================
+# `schemainspect`: SQL Schema Inspection
 
 Schema inspection for PostgreSQL (and potentially others in the future).
 
@@ -12,8 +11,6 @@ Basic Usage
 
 Get an inspection object from an already opened SQLAlchemy session or connection as follows:
 
-.. code-block:: python
-
     from schemainspect import get_inspector
     from sqlbag import S
 
@@ -24,8 +21,6 @@ The inspection object has attributes for tables, views, and all the other things
 
 For instance, the information about a table *books* would be accessed as follows:
 
-.. code-block:: python
-
     >>> books_table = i.tables['"public"."books"']
     >>> books_table.name
     'books'
@@ -35,38 +30,29 @@ For instance, the information about a table *books* would be accessed as follows
     ['id', 'title', 'isbn']
 
 
-Documentation
--------------
+## Documentation
 
 Documentation is a bit patchy at the moment. Watch this space!
 
 
-Author Credits
---------------
+## Author Credits
 
-Initial development, maintenance
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Initial development, maintenance:
 
-- `djrobstep <https://github.com/djrobstep>`_
+- [djrobstep](https://github.com/djrobstep)
 
-Contributions
-~~~~~~~~~~~~~
+Contributions:
 
-- `BenSjoberg <https://github.com/BenSjoberg>`_
-- `johto <https://github.com/johto>`_
+- [BenSjoberg](https://github.com/BenSjoberg)
+- [johto](https://github.com/johto)
 
 
-Install
--------
+## Install
 
-Install with `pip <https://pip.pypa.io>`_:
-
-.. code-block:: shell
+Install with [pip](https://pip.pypa.io):
 
     $ pip install schemainspect
 
 To install psycopg2 (the PostgreSQL driver) at the same time as well:
-
-.. code-block:: shell
 
     $ pip install schemainspect[pg]

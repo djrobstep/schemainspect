@@ -1,16 +1,11 @@
 .PHONY: docs
 
 # test commands and arguments
-tcommand = PYTHONPATH=. py.test -x
+tcommand = py.test -x
 tmessy = -svv
 targs = --cov-report term-missing --cov schemainspect
 
-pip:
-	pip install --upgrade pip
-	pip install --upgrade --upgrade-strategy=eager -r requirements.txt
-
-tox:
-	tox tests
+check: fmt test lint
 
 test:
 	$(tcommand) $(targs) tests
