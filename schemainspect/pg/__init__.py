@@ -32,11 +32,9 @@ class InspectedSelectable(BaseInspectedSelectable):
     def create_statement(self):
         n = self.quoted_full_name
         if self.relationtype == "r":
-            colspec = ",\n".join(
-                "    " + c.creation_clause for c in self.columns.values()
-            )
+            colspec = ",\n".join('    ' + c.creation_clause for c in self.columns.values())
             if colspec:
-                colspec = "\n" + colspec
+                colspec = '\n' + colspec
 
             create_statement = CREATE_TABLE.format(n, colspec)
         elif self.relationtype == "v":
@@ -116,7 +114,7 @@ class InspectedFunction(InspectedSelectable):
 
     @property
     def create_statement(self):
-        return self.full_definition
+        return self.full_definition + ';'
         """
         return CREATE_FUNCTION_FORMAT.format(
             signature=self.signature,
@@ -128,7 +126,6 @@ class InspectedFunction(InspectedSelectable):
             security_type=self.security_type,
         )
         """
-
     @property
     def drop_statement(self):
         return "drop function if exists {} cascade;".format(self.signature)
@@ -624,7 +621,7 @@ class PostgreSQL(DBInspector):
                 strictness=f.strictness,
                 security_type=f.security_type,
                 volatility=f.volatility,
-                full_definition=f.full_definition,
+                full_definition=f.full_definition
             )
             identity_arguments = "({})".format(s.identity_arguments)
             self.functions[s.quoted_full_name + identity_arguments] = s

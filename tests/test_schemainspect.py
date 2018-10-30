@@ -70,7 +70,7 @@ FDEF = """CREATE OR REPLACE FUNCTION public.films_f(d date, def_t text DEFAULT N
  RETURNS TABLE(title character varying, release_date date)
  LANGUAGE sql
 AS $function$select 'a'::varchar, '2014-01-01'::date$function$
-"""
+;"""
 VDEF = """create view "public"."v_films" as  SELECT films.code,
     films.title,
     films.did,
