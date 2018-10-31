@@ -18,6 +18,7 @@ with extension_oids as (
     left join extension_oids e
       on c.oid = e.objid or i.oid = e.objid
  WHERE c.relkind in ('r', 'm') AND i.relkind in ('i')
-      -- SKIP_INTERNAL and nspname not in ('pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
+      -- SKIP_INTERNAL and nspname not in ('pg_catalog', 'information_schema', 'pg_toast')
+      -- SKIP_INTERNAL and nspname not like 'pg_temp_%' and nspname not like 'pg_toast_temp_%'
       -- SKIP_INTERNAL and e.objid is null
 order by 1, 2, 3;

@@ -34,6 +34,8 @@ things as (
       on t.objid = extension_objids.extension_objid
     where
       kind in ('r', 'v', 'm', 'c', 'f') and
-      nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1') and extension_objids.extension_objid is null
+      nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast') 
+			and nspname not like 'pg_temp_%' and nspname not like 'pg_toast_temp_%'
+      and extension_objids.extension_objid is null
 )
 select * from things order by kind, schema, name;

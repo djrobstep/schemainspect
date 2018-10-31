@@ -8,7 +8,8 @@ with r1 as (
             r.routine_definition as definition
         FROM information_schema.routines r
         -- SKIP_INTERNAL where r.external_language not in ('C', 'INTERNAL')
-        -- SKIP_INTERNAL and r.routine_schema not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
+        -- SKIP_INTERNAL and r.routine_schema not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast')
+        -- SKIP_INTERNAL and r.routine_schema not like 'pg_temp_%' and r.routine_schema not like 'pg_toast_temp_%'
         order by
             r.specific_name
     ),
@@ -41,7 +42,8 @@ with r1 as (
           pg_proc p
           INNER JOIN pg_namespace n
               ON n.oid=p.pronamespace
-      -- SKIP_INTERNAL where nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
+      -- SKIP_INTERNAL where nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast')
+      -- SKIP_INTERNAL and nspname not like 'pg_temp_%' and nspname not like 'pg_toast_temp_%'
     ),
     extension_oids as (
       select
