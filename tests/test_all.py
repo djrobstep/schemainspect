@@ -214,7 +214,7 @@ def test_postgres_objects():
 
 def setup_pg_schema(s):
     s.execute("create table emptytable()")
-    s.execute("comment on table emptytable is 'yo'")
+    s.execute("comment on table emptytable is 'emptytable comment'")
     s.execute("create extension pg_trgm")
     s.execute("create schema otherschema")
     s.execute(
@@ -252,6 +252,7 @@ def setup_pg_schema(s):
             language sql;
         """
     )
+    s.execute("comment on function films_f is 'films_f comment'")
     s.execute(
         """
         CREATE OR REPLACE FUNCTION inc_f(integer) RETURNS integer AS $$
@@ -387,6 +388,8 @@ def asserts_pg(i):
         f.drop_statement
         == 'drop function if exists "public"."films_f"(d date, def_t text, def_d date) cascade;'
     )
+    assert f.comment == "films_f comment"
+    assert f2.comment is None
 
     # extensions
     assert [e.quoted_full_name for e in i.extensions.values()] == [
@@ -405,7 +408,7 @@ def asserts_pg(i):
     t_films = n("films")
     t = i.tables[t_films]
     empty = i.tables[n("emptytable")]
-    assert empty.comment == "yo"
+    assert empty.comment == "emptytable comment"
 
     # empty tables
     assert empty.columns == od()
