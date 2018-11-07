@@ -1,30 +1,26 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import OrderedDict as od
-
 import datetime
-from pytest import raises
-
-import sqlalchemy.exc
-import sqlalchemy.dialects.postgresql
-import six
+from collections import OrderedDict as od
 from copy import deepcopy
 
-from sqlbag import temporary_database, S
-
-from schemainspect.misc import quoted_identifier
+import six
+import sqlalchemy.dialects.postgresql
+import sqlalchemy.exc
+from pytest import raises
+from sqlbag import S, temporary_database
 
 import schemainspect
-from schemainspect import get_inspector, NullInspector, to_pytype
+from schemainspect import NullInspector, get_inspector, to_pytype
 from schemainspect.inspected import ColumnInfo
-
-from schemainspect.pg import (
-    InspectedIndex,
-    InspectedSequence,
+from schemainspect.misc import quoted_identifier
+from schemainspect.pg.obj import (
     InspectedConstraint,
-    InspectedExtension,
     InspectedEnum,
+    InspectedExtension,
+    InspectedIndex,
     InspectedPrivilege,
+    InspectedSequence,
 )
 
 if not six.PY2:
@@ -135,30 +131,6 @@ def test_inspected():
     assert x.creation_clause == '"a" integer not null default 5'
 
 
-def test_inspected_privilege():
-    a = InspectedPrivilege("table", "public", "test_table", "select", "test_user")
-    a2 = InspectedPrivilege("table", "public", "test_table", "select", "test_user")
-    b = InspectedPrivilege(
-        "function", "schema", "test_function", "execute", "test_user"
-    )
-    b2 = InspectedPrivilege(
-        "function", "schema", "test_function", "modify", "test_user"
-    )
-    assert a == a2
-    assert a == a
-    assert a != b
-    assert b != b2
-    assert (
-        b2.create_statement
-        == 'grant modify on function "schema"."test_function" to test_user;'
-    )
-    assert (
-        b.drop_statement
-        == 'revoke execute on function "schema"."test_function" from test_user;'
-    )
-    assert a.key == ("table", '"public"."test_table"', "test_user", "select")
-
-
 def test_postgres_objects():
     ex = InspectedExtension("name", "schema", "1.2")
     assert ex.drop_statement == 'drop extension if exists "name";'
@@ -242,6 +214,7 @@ def test_postgres_objects():
 
 def setup_pg_schema(s):
     s.execute("create table emptytable()")
+    s.execute("comment on table emptytable is 'yo'")
     s.execute("create extension pg_trgm")
     s.execute("create schema otherschema")
     s.execute(
@@ -331,19 +304,26 @@ def setup_pg_schema(s):
     )
 
 
+def n(name, schema="public"):
+    return quoted_identifier(name, schema=schema)
+
+
 def asserts_pg(i):
+    # schemas
     assert list(i.schemas.keys()) == ["otherschema", "public"]
     otherschema = i.schemas["otherschema"]
     assert i.schemas["public"] != i.schemas["otherschema"]
     assert otherschema.create_statement == 'create schema if not exists "otherschema";'
     assert otherschema.drop_statement == 'drop schema if exists "otherschema";'
+
+    # to_pytype
     assert to_pytype(i.dialect, "integer") == int
     assert to_pytype(i.dialect, "nonexistent") == type(None)  # noqa
 
-    def n(name, schema="public"):
-        return quoted_identifier(name, schema=schema)
-
+    # dialect
     assert i.dialect.name == "postgresql"
+
+    # tables and views
     films = n("films")
     v_films = n("v_films")
     v_films2 = n("v_films2")
@@ -356,14 +336,19 @@ def asserts_pg(i):
     assert v == deepcopy(v)
     assert v.drop_statement == "drop view if exists {} cascade;".format(v_films)
     v = i.views[v_films]
+
+    # dependencies
     assert v.dependent_on == [films]
     v = i.views[v_films2]
     assert v.dependent_on == [v_films]
+
     for k, r in i.relations.items():
         for dependent in r.dependents:
             assert k in i.relations[dependent].dependent_on
         for dependency in r.dependent_on:
             assert k in i.relations[dependency].dependents
+
+    # materialized views
     mv_films = n("mv_films")
     mv = i.materialized_views[mv_films]
     assert list(i.materialized_views.keys()) == [mv_films]
@@ -372,7 +357,11 @@ def asserts_pg(i):
     assert mv.drop_statement == "drop materialized view if exists {} cascade;".format(
         mv_films
     )
+
+    # materialized view indexes
     assert n("mv_films_title_idx") in mv.indexes
+
+    # functions
     films_f = n("films_f") + "(d date, def_t text, def_d date)"
     inc_f = n("inc_f") + "(integer)"
     inc_f_noargs = n("inc_f_noargs") + "()"
@@ -398,18 +387,27 @@ def asserts_pg(i):
         f.drop_statement
         == 'drop function if exists "public"."films_f"(d date, def_t text, def_d date) cascade;'
     )
+
+    # extensions
     assert [e.quoted_full_name for e in i.extensions.values()] == [
         n("plpgsql", schema="pg_catalog"),
         n("pg_trgm"),
     ]
+
+    # constraints
     cons = i.constraints['"public"."films"."firstkey"']
     assert (
         cons.create_statement
         == 'alter table "public"."films" add constraint "firstkey" PRIMARY KEY using index "firstkey";'
     )
+
+    # tables
     t_films = n("films")
     t = i.tables[t_films]
     empty = i.tables[n("emptytable")]
+    assert empty.comment == "yo"
+
+    # empty tables
     assert empty.columns == od()
     assert (
         empty.create_statement
@@ -417,16 +415,24 @@ def asserts_pg(i):
 );
 """
     )
+
+    # create and drop tables
     assert t.create_statement == T_CREATE
     assert t.drop_statement == "drop table {};".format(t_films)
     assert t.alter_table_statement("x") == "alter table {} x;".format(t_films)
+
+    # table indexes
     assert n("films_title_idx") in t.indexes
+
+    # privileges
     g = InspectedPrivilege("table", "public", "films", "select", "postgres")
     g = i.privileges[g.key]
     assert g.create_statement == "grant select on table {} to postgres;".format(t_films)
     assert g.drop_statement == "revoke select on table {} from postgres;".format(
         t_films
     )
+
+    # composite types
     ct = i.composite_types[n("ttt")]
     assert [(x.name, x.dbtype) for x in ct.columns.values()] == [
         ("a", "integer"),
@@ -436,6 +442,8 @@ def asserts_pg(i):
         ct.create_statement == 'create type "public"."ttt" as ("a" integer, "b" text);'
     )
     assert ct.drop_statement == 'drop type "public"."ttt";'
+
+    # enums
     assert i.enums[n("abc")].elements == ["a", "b", "c"]
     x = i.tables[n("t_abc")].columns["x"]
     assert x.is_enum
@@ -448,6 +456,7 @@ def asserts_pg(i):
         == 'alter table t alter column "x" set data type abc using "x"::abc;'
     )
     tid = i.tables[n("t_abc")].columns["id"]
+
     with raises(ValueError):
         tid.change_enum_to_string_statement("t")
     with raises(ValueError):
@@ -460,24 +469,6 @@ def test_postgres_inspect(db):
         i = get_inspector(s)
         asserts_pg(i)
         assert i == i == get_inspector(s)
-
-
-def asserts_pg_singleschema(i, schema_name):
-    for (
-        prop
-    ) in "schemas relations tables views functions selectables sequences enums constraints".split():
-        att = getattr(i, prop)
-        for k, v in att.items():
-            assert v.schema == schema_name
-
-
-def test_postgres_inspect_singleschema(db):
-    with S(db) as s:
-        setup_pg_schema(s)
-        i = get_inspector(s, schema="otherschema")
-        asserts_pg_singleschema(i, "otherschema")
-        i = get_inspector(s, schema="public")
-        asserts_pg_singleschema(i, "public")
 
 
 def test_empty():

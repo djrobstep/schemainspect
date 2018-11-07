@@ -58,7 +58,8 @@ select
     format_type(atttypid, atttypmod) AS datatypestring,
     e.enum_oid is not null as is_enum,
     e.name as enum_name,
-    e.schema as enum_schema
+    e.schema as enum_schema,
+    pg_catalog.obj_description(r.oid, 'pg_class') as comment
 FROM
     r
     left join pg_catalog.pg_attribute a

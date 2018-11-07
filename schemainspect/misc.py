@@ -1,6 +1,7 @@
-from pkg_resources import resource_stream as pkg_resource_stream
 import inspect
+
 import six
+from pkg_resources import resource_stream as pkg_resource_stream
 
 
 def connection_from_s_or_c(s_or_c):  # pragma: no cover
