@@ -1,4 +1,5 @@
 from sqlbag import S
+
 from schemainspect import get_inspector
 
 CREATES = """

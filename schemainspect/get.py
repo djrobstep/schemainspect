@@ -1,5 +1,5 @@
-from .misc import connection_from_s_or_c
 from .inspector import NullInspector
+from .misc import connection_from_s_or_c
 from .pg import PostgreSQL
 
 SUPPORTED = {"postgresql": PostgreSQL}

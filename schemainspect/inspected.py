@@ -1,5 +1,6 @@
-from .misc import AutoRepr, quoted_identifier
 from collections import OrderedDict as od
+
+from .misc import AutoRepr, quoted_identifier
 
 
 class Inspected(AutoRepr):
@@ -158,6 +159,7 @@ class InspectedSelectable(Inspected):
         definition=None,
         dependent_on=None,
         dependents=None,
+        comment=None,
         relationtype="unknown",
     ):
         self.name = name
@@ -172,6 +174,7 @@ class InspectedSelectable(Inspected):
         self.dependents_all = []
         self.constraints = od()
         self.indexes = od()
+        self.comment = comment
 
     def __eq__(self, other):
         equalities = (
