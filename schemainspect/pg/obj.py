@@ -96,6 +96,7 @@ class InspectedFunction(InspectedSelectable):
         result_string,
         language,
         full_definition,
+        comment,
     ):
         self.identity_arguments = identity_arguments
         self.result_string = result_string
@@ -104,6 +105,7 @@ class InspectedFunction(InspectedSelectable):
         self.strictness = strictness
         self.security_type = security_type
         self.full_definition = full_definition
+
         super(InspectedFunction, self).__init__(
             name=name,
             schema=schema,
@@ -111,6 +113,7 @@ class InspectedFunction(InspectedSelectable):
             inputs=inputs,
             definition=definition,
             relationtype="f",
+            comment=comment,
         )
 
     @property
@@ -616,7 +619,9 @@ class PostgreSQL(DBInspector):
                 security_type=f.security_type,
                 volatility=f.volatility,
                 full_definition=f.full_definition,
+                comment=f.comment,
             )
+
             identity_arguments = "({})".format(s.identity_arguments)
             self.functions[s.quoted_full_name + identity_arguments] = s
 

@@ -89,7 +89,8 @@ with r1 as (
             r.oid as oid,
             r.extension_oid as extension_oid,
             pg_get_function_result(oid) as result_string,
-            pg_get_function_identity_arguments(oid) as identity_arguments
+            pg_get_function_identity_arguments(oid) as identity_arguments,
+            pg_catalog.obj_description(r.oid) as comment
         FROM r
             LEFT JOIN information_schema.parameters p ON
                 r.specific_name=p.specific_name
