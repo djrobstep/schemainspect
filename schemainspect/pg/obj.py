@@ -154,7 +154,7 @@ class InspectedFunction(InspectedSelectable):
 
 class InspectedTrigger(Inspected):
     def __init__(self, name, schema, table_name, full_definition):
-        self.name, self.schema, self.table_name, self.full_definition= name, schema, table_name, full_definition
+        self.name, self.schema, self.table_name, self.full_definition = name, schema, table_name, full_definition
 
     @property
     def drop_statement(self):
