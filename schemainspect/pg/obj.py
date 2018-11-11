@@ -647,7 +647,7 @@ class PostgreSQL(DBInspector):
 
             identity_arguments = "({})".format(s.identity_arguments)
             self.functions[s.quoted_full_name + identity_arguments] = s
-    
+
     def load_triggers(self):
         q = self.c.execute(self.TRIGGERS_QUERY)
         triggers = [InspectedTrigger(i.name, i.schema, i.full_definition) for i in q]  # type: list[InspectedTrigger]
