@@ -30,7 +30,6 @@ DEPS_QUERY = resource_text("sql/deps.sql")
 PRIVILEGES_QUERY = resource_text("sql/privileges.sql")
 TRIGGERS_QUERY = resource_text("sql/triggers.sql")
 
-
 class InspectedSelectable(BaseInspectedSelectable):
     @property
     def create_statement(self):
@@ -427,7 +426,6 @@ class PostgreSQL(DBInspector):
         self.SCHEMAS_QUERY = processed(SCHEMAS_QUERY)
         self.PRIVILEGES_QUERY = processed(PRIVILEGES_QUERY)
         self.TRIGGERS_QUERY = processed(TRIGGERS_QUERY)
-				
         super(PostgreSQL, self).__init__(c, include_internal)
 
     def load_all(self):
