@@ -166,14 +166,10 @@ class InspectedTrigger(Inspected):
 
     def __eq__(self, other):
         """
-        :type other: InspectedTrigger 
+        :type other: InspectedTrigger
         :rtype: bool
         """
-        return (
-            self.name == other.name and
-            self.schema == other.schema and
-            self.full_definition == other.full_definition
-        )
+        return self.name == other.name and self.schema == other.schema and self.full_definition == other.full_definition
 
 
 class InspectedIndex(Inspected, TableRelated):
@@ -657,7 +653,6 @@ class PostgreSQL(DBInspector):
         triggers = [InspectedTrigger(i.name, i.schema, i.full_definition) for i in q]  # type: list[InspectedTrigger]
         self.triggers = od((t.signature, t) for t in triggers)
 
-
     def one_schema(self, schema):
         props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges"
         for prop in props.split():
@@ -667,7 +662,7 @@ class PostgreSQL(DBInspector):
 
     def __eq__(self, other):
         """
-        :type other: PostgreSQL 
+        :type other: PostgreSQL
         :rtype: bool
         """
         return (
