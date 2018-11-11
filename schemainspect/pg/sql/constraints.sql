@@ -14,7 +14,8 @@ with extension_oids as (
         indexdef as create_statement
     FROM
         pg_indexes
-        -- SKIP_INTERNAL where schemaname not in ('pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
+        -- SKIP_INTERNAL where schemaname not in ('pg_catalog', 'information_schema', 'pg_toast')
+				-- SKIP_INTERNAL and schemaname not like 'pg_temp_%' and schemaname not like 'pg_toast_temp_%'
     order by
         schemaname, tablename, indexname
 )

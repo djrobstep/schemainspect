@@ -28,6 +28,7 @@ EXTENSIONS_QUERY = resource_text("sql/extensions.sql")
 ENUMS_QUERY = resource_text("sql/enums.sql")
 DEPS_QUERY = resource_text("sql/deps.sql")
 PRIVILEGES_QUERY = resource_text("sql/privileges.sql")
+TRIGGERS_QUERY = resource_text("sql/triggers.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
@@ -150,6 +151,28 @@ class InspectedFunction(InspectedSelectable):
             and self.security_type == other.security_type
         )
 
+class InspectedTrigger(Inspected):
+    def __init__(self, name, schema, full_definition):
+        self.name, self.schema, self.full_definition = name, schema, full_definition
+
+    @property
+    def drop_statement(self):
+        return 'drop trigger if exists {};'.format(self.quoted_full_name)
+
+    @property
+    def create_statement(self):
+        return self.full_definition + ';'
+
+    def __eq__(self, other):
+        """
+        :type other: InspectedTrigger 
+        :rtype: bool
+        """
+        return (
+            self.name == other.name and
+            self.schema == other.schema and
+            self.full_definition == other.full_definition
+        )
 
 class InspectedIndex(Inspected, TableRelated):
     def __init__(self, name, schema, table_name, definition=None):
@@ -403,6 +426,8 @@ class PostgreSQL(DBInspector):
         self.DEPS_QUERY = processed(DEPS_QUERY)
         self.SCHEMAS_QUERY = processed(SCHEMAS_QUERY)
         self.PRIVILEGES_QUERY = processed(PRIVILEGES_QUERY)
+        self.TRIGGERS_QUERY = processed(TRIGGERS_QUERY)
+				
         super(PostgreSQL, self).__init__(c, include_internal)
 
     def load_all(self):
@@ -415,6 +440,7 @@ class PostgreSQL(DBInspector):
         self.load_deps()
         self.load_deps_all()
         self.load_privileges()
+        self.load_triggers()
 
     def load_schemas(self):
         q = self.c.execute(self.SCHEMAS_QUERY)
@@ -624,7 +650,12 @@ class PostgreSQL(DBInspector):
 
             identity_arguments = "({})".format(s.identity_arguments)
             self.functions[s.quoted_full_name + identity_arguments] = s
-
+    
+    def load_triggers(self):
+        q = self.c.execute(self.TRIGGERS_QUERY)
+        triggers = [InspectedTrigger(i.name, i.schema, i.full_definition) for i in q] # type: list[InspectedTrigger]
+        self.triggers = od((t.signature, t) for t in triggers)
+			
     def one_schema(self, schema):
         props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges"
         for prop in props.split():
@@ -633,6 +664,10 @@ class PostgreSQL(DBInspector):
             setattr(self, prop, filtered)
 
     def __eq__(self, other):
+        """
+        :type other: PostgreSQL 
+        :rtype: bool
+        """
         return (
             type(self) == type(other)
             and self.schemas == other.schemas
@@ -642,4 +677,5 @@ class PostgreSQL(DBInspector):
             and self.constraints == other.constraints
             and self.extensions == other.extensions
             and self.functions == other.functions
+            and self.triggers == other.triggers
         )
