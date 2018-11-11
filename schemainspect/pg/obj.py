@@ -30,6 +30,7 @@ DEPS_QUERY = resource_text("sql/deps.sql")
 PRIVILEGES_QUERY = resource_text("sql/privileges.sql")
 TRIGGERS_QUERY = resource_text("sql/triggers.sql")
 
+
 class InspectedSelectable(BaseInspectedSelectable):
     @property
     def create_statement(self):
@@ -150,6 +151,7 @@ class InspectedFunction(InspectedSelectable):
             and self.security_type == other.security_type
         )
 
+
 class InspectedTrigger(Inspected):
     def __init__(self, name, schema, full_definition):
         self.name, self.schema, self.full_definition = name, schema, full_definition
@@ -172,6 +174,7 @@ class InspectedTrigger(Inspected):
             self.schema == other.schema and
             self.full_definition == other.full_definition
         )
+
 
 class InspectedIndex(Inspected, TableRelated):
     def __init__(self, name, schema, table_name, definition=None):
@@ -651,9 +654,10 @@ class PostgreSQL(DBInspector):
     
     def load_triggers(self):
         q = self.c.execute(self.TRIGGERS_QUERY)
-        triggers = [InspectedTrigger(i.name, i.schema, i.full_definition) for i in q] # type: list[InspectedTrigger]
+        triggers = [InspectedTrigger(i.name, i.schema, i.full_definition) for i in q]  # type: list[InspectedTrigger]
         self.triggers = od((t.signature, t) for t in triggers)
-			
+
+
     def one_schema(self, schema):
         props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges"
         for prop in props.split():
