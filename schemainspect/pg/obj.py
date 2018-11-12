@@ -12,7 +12,9 @@ from ..inspector import DBInspector
 from ..misc import quoted_identifier, resource_text
 
 CREATE_TABLE = """create table {} ({}
-);
+){};
+"""
+CREATE_TABLE_SUBCLASS = """create table partition of {} {};
 """
 CREATE_FUNCTION_FORMAT = """create or replace function {signature}
 returns {result_string} as
@@ -29,20 +31,30 @@ ENUMS_QUERY = resource_text("sql/enums.sql")
 DEPS_QUERY = resource_text("sql/deps.sql")
 PRIVILEGES_QUERY = resource_text("sql/privileges.sql")
 TRIGGERS_QUERY = resource_text("sql/triggers.sql")
+COLLATIONS_QUERY = resource_text("sql/collations.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
     @property
     def create_statement(self):
         n = self.quoted_full_name
-        if self.relationtype == "r":
-            colspec = ",\n".join(
-                "    " + c.creation_clause for c in self.columns.values()
-            )
-            if colspec:
-                colspec = "\n" + colspec
+        if self.relationtype in ("r", "p"):
+            if self.parent_table is None:
+                colspec = ",\n".join(
+                    "    " + c.creation_clause for c in self.columns.values()
+                )
+                if colspec:
+                    colspec = "\n" + colspec
+                if self.partition_def:
+                    partition_key = " partition by " + self.partition_def
+                else:
+                    partition_key = ""
 
-            create_statement = CREATE_TABLE.format(n, colspec)
+                create_statement = CREATE_TABLE.format(n, colspec, partition_key)
+            else:
+                create_statement = CREATE_TABLE_SUBCLASS.format(
+                    self.parent_table, self.partition_def
+                )
         elif self.relationtype == "v":
             create_statement = "create view {} as {}\n".format(n, self.definition)
         elif self.relationtype == "m":
@@ -54,7 +66,6 @@ class InspectedSelectable(BaseInspectedSelectable):
             create_statement = "create type {} as ({});".format(n, colspec)
         else:
             raise NotImplementedError  # pragma: no cover
-
         return create_statement
 
     @property
@@ -74,12 +85,61 @@ class InspectedSelectable(BaseInspectedSelectable):
         return drop_statement
 
     def alter_table_statement(self, clause):
-        if self.relationtype == "r":
+        if self.is_alterable:
             alter = "alter table {} {};".format(self.quoted_full_name, clause)
         else:
             raise NotImplementedError  # pragma: no cover
 
         return alter
+
+    @property
+    def is_partitioned(self):
+        return self.relationtype == "p"
+
+    @property
+    def is_table(self):
+        return self.relationtype in ("p", "r")
+
+    @property
+    def is_alterable(self):
+        return self.is_table and not self.parent_table
+
+    @property
+    def contains_data(self):
+        return bool(
+            self.relationtype == "r" and (self.parent_table or not self.partition_def)
+        )
+
+    @property
+    def is_child_table(self):
+        return bool(self.relationtype == "r" and self.parent_table)
+
+    @property
+    def uses_partitioning(self):
+        return self.is_child_table or self.is_partitioned
+
+    @property
+    def attach_statement(self):
+        if self.parent_table:
+            return "alter table {} attach partition {} {};".format(
+                self.quoted_full_name, self.parent_table, self.partition_spec
+            )
+
+    @property
+    def detach_statement(self):
+        if self.parent_table:
+            return "alter table {} detach partition {};".format(
+                self.parent_table, self.quoted_full_name
+            )
+
+    def attach_detach_statements(self, before):
+        slist = []
+        if self.parent_table != before.parent_table:
+            if before.parent_table:
+                slist.append(before.detach_statement)
+            if self.parent_table:
+                slist.append(self.attach_statement)
+        return slist
 
 
 class InspectedFunction(InspectedSelectable):
@@ -224,6 +284,41 @@ class InspectedSequence(Inspected):
 
     def __eq__(self, other):
         equalities = self.name == other.name, self.schema == other.schema
+        return all(equalities)
+
+
+class InspectedCollation(Inspected):
+    def __init__(self, name, schema, provider, encoding, lc_collate, lc_ctype, version):
+        self.name = name
+        self.schema = schema
+        self.provider = provider
+        self.lc_collate = lc_collate
+        self.lc_ctype = lc_ctype
+        self.encoding = encoding
+        self.version = version
+
+    @property
+    def locale(self):
+        return self.lc_collate
+
+    @property
+    def drop_statement(self):
+        return "drop collation if exists {};".format(self.quoted_full_name)
+
+    @property
+    def create_statement(self):
+        return "create collation if not exists {} (provider = '{}', locale = '{}');".format(
+            self.quoted_full_name, self.provider, self.locale
+        )
+
+    def __eq__(self, other):
+
+        equalities = (
+            self.name == other.name,
+            self.schema == other.schema,
+            self.provider == other.provider,
+            self.locale == other.locale,
+        )
         return all(equalities)
 
 
@@ -437,6 +532,7 @@ class PostgreSQL(DBInspector):
         self.SCHEMAS_QUERY = processed(SCHEMAS_QUERY)
         self.PRIVILEGES_QUERY = processed(PRIVILEGES_QUERY)
         self.TRIGGERS_QUERY = processed(TRIGGERS_QUERY)
+        self.COLLATIONS_QUERY = processed(COLLATIONS_QUERY)
         super(PostgreSQL, self).__init__(c, include_internal)
 
     def load_all(self):
@@ -450,11 +546,28 @@ class PostgreSQL(DBInspector):
         self.load_deps_all()
         self.load_privileges()
         self.load_triggers()
+        self.load_collations()
 
     def load_schemas(self):
         q = self.c.execute(self.SCHEMAS_QUERY)
         schemas = [InspectedSchema(schema=each.schema) for each in q]
         self.schemas = od((schema.schema, schema) for schema in schemas)
+
+    def load_collations(self):
+        q = self.c.execute(self.COLLATIONS_QUERY)
+        collations = [
+            InspectedCollation(
+                schema=i.schema,
+                name=i.name,
+                provider=i.provider,
+                encoding=i.encoding,
+                lc_collate=i.lc_collate,
+                lc_ctype=i.lc_ctype,
+                version=i.version,
+            )
+            for i in q
+        ]
+        self.collations = od((i.quoted_full_name, i) for i in collations)
 
     def load_privileges(self):
         q = self.c.execute(self.PRIVILEGES_QUERY)
@@ -497,11 +610,36 @@ class PostgreSQL(DBInspector):
             d_all.sort()
             x.dependents_all = d_all
 
+    @property
+    def partitioned_tables(self):
+        return od((k, v) for k, v in self.tables.items() if v.is_partitioned)
+
+    @property
+    def alterable_tables(self):  # ordinary tables and parent tables
+        return od((k, v) for k, v in self.tables.items() if v.is_alterable)
+
+    @property
+    def data_tables(self):  # ordinary tables and child tables
+        return od((k, v) for k, v in self.tables.items() if v.contains_data)
+
+    @property
+    def child_tables(self):
+        return od((k, v) for k, v in self.tables.items() if v.is_child_table)
+
+    @property
+    def tables_using_partitioning(self):
+        return od((k, v) for k, v in self.tables.items() if v.uses_partitioning)
+
+    @property
+    def tables_not_using_partitioning(self):
+        return od((k, v) for k, v in self.tables.items() if not v.uses_partitioning)
+
     def load_all_relations(self):
         self.tables = od()
         self.views = od()
         self.materialized_views = od()
         self.composite_types = od()
+
         q = self.c.execute(self.ENUMS_QUERY)
         enumlist = [
             InspectedEnum(name=i.name, schema=i.schema, elements=i.elements) for i in q
@@ -531,10 +669,12 @@ class PostgreSQL(DBInspector):
                     not_null=c.not_null,
                     is_enum=c.is_enum,
                     enum=get_enum(c.enum_name, c.enum_schema),
+                    collation=c.collation,
                 )
                 for c in clist
                 if c.position_number
             ]
+
             s = InspectedSelectable(
                 name=f.name,
                 schema=f.schema,
@@ -542,12 +682,15 @@ class PostgreSQL(DBInspector):
                 relationtype=f.relationtype,
                 definition=f.definition,
                 comment=f.comment,
+                parent_table=f.parent_table,
+                partition_def=f.partition_def,
             )
             RELATIONTYPES = {
                 "r": "tables",
                 "v": "views",
                 "m": "materialized_views",
                 "c": "composite_types",
+                "p": "tables",
             }
             att = getattr(self, RELATIONTYPES[f.relationtype])
             att[s.quoted_full_name] = s

@@ -49,6 +49,7 @@ class ColumnInfo(AutoRepr):
         is_enum=False,
         enum=None,
         dbtypestr=None,
+        collation=None,
     ):
         self.name = name or ""
         self.dbtype = dbtype
@@ -58,6 +59,7 @@ class ColumnInfo(AutoRepr):
         self.not_null = not_null
         self.is_enum = is_enum
         self.enum = enum
+        self.collation = collation
 
     def __eq__(self, other):
         return (
@@ -68,6 +70,7 @@ class ColumnInfo(AutoRepr):
             and self.default == other.default
             and self.not_null == other.not_null
             and self.enum == other.enum
+            and self.collation == other.collation
         )
 
     def alter_clauses(self, other):
@@ -76,7 +79,7 @@ class ColumnInfo(AutoRepr):
             clauses.append(self.alter_default_clause)
         if self.not_null != other.not_null:
             clauses.append(self.alter_not_null_clause)
-        if self.dbtypestr != other.dbtypestr:
+        if self.dbtypestr != other.dbtypestr or self.collation != other.collation:
             clauses.append(self.alter_data_type_clause)
         return clauses
 
@@ -121,7 +124,7 @@ class ColumnInfo(AutoRepr):
 
     @property
     def add_column_clause(self):
-        return "add column {}".format(self.creation_clause)
+        return "add column {}{}".format(self.creation_clause, self.collation_subclause)
 
     @property
     def drop_column_clause(self):
@@ -143,9 +146,17 @@ class ColumnInfo(AutoRepr):
         return alter
 
     @property
+    def collation_subclause(self):
+        if self.collation:
+            collate = ' collate {}'.format(quoted_identifier(self.collation))
+        else:
+            collate = ""
+        return collate
+
+    @property
     def alter_data_type_clause(self):
-        return "alter column {} set data type {}".format(
-            self.quoted_name, self.dbtypestr
+        return "alter column {} set data type {}{}".format(
+            self.quoted_name, self.dbtypestr, self.collation_subclause
         )
 
 
@@ -161,6 +172,8 @@ class InspectedSelectable(Inspected):
         dependents=None,
         comment=None,
         relationtype="unknown",
+        parent_table=None,
+        partition_def=None,
     ):
         self.name = name
         self.schema = schema
@@ -175,6 +188,8 @@ class InspectedSelectable(Inspected):
         self.constraints = od()
         self.indexes = od()
         self.comment = comment
+        self.parent_table = parent_table
+        self.partition_def = partition_def
 
     def __eq__(self, other):
         equalities = (
@@ -185,5 +200,7 @@ class InspectedSelectable(Inspected):
             dict(self.columns) == dict(other.columns),
             self.inputs == other.inputs,
             self.definition == other.definition,
+            self.parent_table == other.parent_table,
+            self.partition_def == other.partition_def,
         )
         return all(equalities)

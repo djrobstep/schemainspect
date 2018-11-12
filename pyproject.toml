@@ -22,4 +22,5 @@ pytest-sugar = "*"
 psycopg2-binary = "*"
 flake8 = "*"
 isort = "*"
+migra = "*"
 black = {version = "*", python = ">=3.6"}
