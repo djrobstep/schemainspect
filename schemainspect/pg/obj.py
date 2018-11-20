@@ -812,7 +812,7 @@ class PostgreSQL(DBInspector):
         self.triggers = od((t.name, t) for t in triggers)
 
     def one_schema(self, schema):
-        props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges"
+        props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations"
         for prop in props.split():
             att = getattr(self, prop)
             filtered = {k: v for k, v in att.items() if v.schema == schema}
@@ -823,6 +823,7 @@ class PostgreSQL(DBInspector):
         :type other: PostgreSQL
         :rtype: bool
         """
+
         return (
             type(self) == type(other)
             and self.schemas == other.schemas
@@ -833,4 +834,5 @@ class PostgreSQL(DBInspector):
             and self.extensions == other.extensions
             and self.functions == other.functions
             and self.triggers == other.triggers
+            and self.collations == other.collations
         )

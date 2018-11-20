@@ -148,7 +148,7 @@ class ColumnInfo(AutoRepr):
     @property
     def collation_subclause(self):
         if self.collation:
-            collate = ' collate {}'.format(quoted_identifier(self.collation))
+            collate = " collate {}".format(quoted_identifier(self.collation))
         else:
             collate = ""
         return collate
