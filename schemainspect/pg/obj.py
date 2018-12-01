@@ -561,15 +561,6 @@ class InspectedRowPolicy(Inspected, TableRelated):
 
     @property
     def create_statement(self):
-        """
-        CREATE POLICY name ON table_name
-            [ AS { PERMISSIVE | RESTRICTIVE } ]
-            [ FOR { ALL | SELECT | INSERT | UPDATE | DELETE } ]
-            [ TO { role_name | PUBLIC | CURRENT_USER | SESSION_USER } [, ...] ]
-            [ USING ( using_expression ) ]
-            [ WITH CHECK ( check_expression ) ]
-        """
-
         if self.withcheck:
             withcheck_clause = "\nwith check {}".format(self.withcheck)
         else:
@@ -592,6 +583,19 @@ class InspectedRowPolicy(Inspected, TableRelated):
         return "drop policy {} on {};".format(
             self.quoted_name, self.quoted_full_table_name
         )
+
+    def __eq__(self, other):
+        equalities = (
+            self.name == self.name,
+            self.schema == other.schema,
+            self.permissiveness == other.permissiveness,
+            self.commandtype == other.commandtype,
+            self.permissive == other.permissive,
+            self.roles == other.roles,
+            self.qual == other.qual,
+            self.withcheck == other.withcheck,
+        )
+        return all(equalities)
 
 
 class PostgreSQL(DBInspector):
@@ -939,4 +943,5 @@ class PostgreSQL(DBInspector):
             and self.functions == other.functions
             and self.triggers == other.triggers
             and self.collations == other.collations
+            and self.rlspolicies == other.rlspolicies
         )
