@@ -32,6 +32,7 @@ DEPS_QUERY = resource_text("sql/deps.sql")
 PRIVILEGES_QUERY = resource_text("sql/privileges.sql")
 TRIGGERS_QUERY = resource_text("sql/triggers.sql")
 COLLATIONS_QUERY = resource_text("sql/collations.sql")
+RLSPOLICIES_QUERY = resource_text("sql/rlspolicies.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
@@ -140,6 +141,15 @@ class InspectedSelectable(BaseInspectedSelectable):
             if self.parent_table:
                 slist.append(self.attach_statement)
         return slist
+
+    @property
+    def alter_rls_clause(self):
+        keyword = "enable" if self.rowsecurity else "disable"
+        return "{} row level security".format(keyword)
+
+    @property
+    def alter_rls_statement(self):
+        return self.alter_table_statement(self.alter_rls_clause)
 
 
 class InspectedFunction(InspectedSelectable):
@@ -513,6 +523,77 @@ class InspectedPrivilege(Inspected):
         return self.object_type, self.quoted_full_name, self.target_user, self.privilege
 
 
+RLS_POLICY_CREATE = """create policy {name}
+on {table_name}
+as {permissiveness}
+for {commandtype_keyword}
+to {roleslist}
+using {qual}{withcheck_clause};
+"""
+
+COMMANDTYPES = {"*": "all", "r": "select", "a": "insert", "w": "delete"}
+
+
+class InspectedRowPolicy(Inspected, TableRelated):
+    def __init__(
+        self, name, schema, table_name, commandtype, permissive, roles, qual, withcheck
+    ):
+        self.name = name
+        self.schema = schema
+        self.table_name = table_name
+        self.commandtype = commandtype
+        self.permissive = permissive
+        self.roles = roles
+        self.qual = qual
+        self.withcheck = withcheck
+
+    @property
+    def permissiveness(self):
+        return "permissive" if self.permissive else "restrictive"
+
+    @property
+    def commandtype_keyword(self):
+        return COMMANDTYPES[self.commandtype]
+
+    @property
+    def key(self):
+        return "{}.{}".format(self.quoted_full_table_name, self.quoted_name)
+
+    @property
+    def create_statement(self):
+        """
+        CREATE POLICY name ON table_name
+            [ AS { PERMISSIVE | RESTRICTIVE } ]
+            [ FOR { ALL | SELECT | INSERT | UPDATE | DELETE } ]
+            [ TO { role_name | PUBLIC | CURRENT_USER | SESSION_USER } [, ...] ]
+            [ USING ( using_expression ) ]
+            [ WITH CHECK ( check_expression ) ]
+        """
+
+        if self.withcheck:
+            withcheck_clause = "\nwith check {}".format(self.withcheck)
+        else:
+            withcheck_clause = ""
+
+        roleslist = ", ".join(self.roles)
+
+        return RLS_POLICY_CREATE.format(
+            name=self.quoted_name,
+            table_name=self.quoted_full_table_name,
+            permissiveness=self.permissiveness,
+            commandtype_keyword=self.commandtype_keyword,
+            roleslist=roleslist,
+            qual=self.qual,
+            withcheck_clause=withcheck_clause,
+        )
+
+    @property
+    def drop_statement(self):
+        return "drop policy {} on {};".format(
+            self.quoted_name, self.quoted_full_table_name
+        )
+
+
 class PostgreSQL(DBInspector):
     def __init__(self, c, include_internal=False):
         def processed(q):
@@ -533,6 +614,7 @@ class PostgreSQL(DBInspector):
         self.PRIVILEGES_QUERY = processed(PRIVILEGES_QUERY)
         self.TRIGGERS_QUERY = processed(TRIGGERS_QUERY)
         self.COLLATIONS_QUERY = processed(COLLATIONS_QUERY)
+        self.RLSPOLICIES_QUERY = processed(RLSPOLICIES_QUERY)
         super(PostgreSQL, self).__init__(c, include_internal)
 
     def load_all(self):
@@ -547,11 +629,31 @@ class PostgreSQL(DBInspector):
         self.load_privileges()
         self.load_triggers()
         self.load_collations()
+        self.load_rlspolicies()
 
     def load_schemas(self):
         q = self.c.execute(self.SCHEMAS_QUERY)
         schemas = [InspectedSchema(schema=each.schema) for each in q]
         self.schemas = od((schema.schema, schema) for schema in schemas)
+
+    def load_rlspolicies(self):
+        q = self.c.execute(self.RLSPOLICIES_QUERY)
+
+        rlspolicies = [
+            InspectedRowPolicy(
+                name=p.name,
+                schema=p.schema,
+                table_name=p.table_name,
+                commandtype=p.commandtype,
+                permissive=p.permissive,
+                roles=p.roles,
+                qual=p.qual,
+                withcheck=p.withcheck,
+            )
+            for p in q
+        ]
+
+        self.rlspolicies = od((p.key, p) for p in rlspolicies)
 
     def load_collations(self):
         q = self.c.execute(self.COLLATIONS_QUERY)
@@ -684,6 +786,8 @@ class PostgreSQL(DBInspector):
                 comment=f.comment,
                 parent_table=f.parent_table,
                 partition_def=f.partition_def,
+                rowsecurity=f.rowsecurity,
+                forcerowsecurity=f.forcerowsecurity,
             )
             RELATIONTYPES = {
                 "r": "tables",
