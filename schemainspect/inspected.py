@@ -174,6 +174,8 @@ class InspectedSelectable(Inspected):
         relationtype="unknown",
         parent_table=None,
         partition_def=None,
+        rowsecurity=False,
+        forcerowsecurity=False,
     ):
         self.name = name
         self.schema = schema
@@ -190,6 +192,8 @@ class InspectedSelectable(Inspected):
         self.comment = comment
         self.parent_table = parent_table
         self.partition_def = partition_def
+        self.rowsecurity = rowsecurity
+        self.forcerowsecurity = forcerowsecurity
 
     def __eq__(self, other):
         equalities = (
@@ -202,5 +206,6 @@ class InspectedSelectable(Inspected):
             self.definition == other.definition,
             self.parent_table == other.parent_table,
             self.partition_def == other.partition_def,
+            self.rowsecurity == other.rowsecurity,
         )
         return all(equalities)

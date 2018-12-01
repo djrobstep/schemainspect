@@ -49,7 +49,9 @@ r as (
         when c.relhassubclass is not null then
           pg_catalog.pg_get_partkeydef(c.oid)
         end
-        as partition_def
+        as partition_def,
+        c.relrowsecurity::boolean as rowsecurity,
+        c.relforcerowsecurity::boolean as forcerowsecurity
     from
         pg_catalog.pg_class c
         inner join pg_catalog.pg_namespace n
@@ -80,7 +82,9 @@ select
     e.schema as enum_schema,
     pg_catalog.obj_description(r.oid) as comment,
     r.parent_table,
-    r.partition_def
+    r.partition_def,
+    r.rowsecurity,
+    r.forcerowsecurity
 FROM
     r
     left join pg_catalog.pg_attribute a
