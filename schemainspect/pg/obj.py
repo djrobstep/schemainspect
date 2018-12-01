@@ -72,7 +72,7 @@ class InspectedSelectable(BaseInspectedSelectable):
     @property
     def drop_statement(self):
         n = self.quoted_full_name
-        if self.relationtype == "r":
+        if self.relationtype in ("r", "p"):
             drop_statement = "drop table {};".format(n)
         elif self.relationtype == "v":
             drop_statement = "drop view if exists {} cascade;".format(n)
