@@ -102,13 +102,13 @@ def test_basic_schemainspect():
     assert alter == [
         "alter table t alter column \"b\" set default 'd'::text;",
         'alter table t alter column "b" set not null;',
-        'alter table t alter column "b" set data type text;',
+        'alter table t alter column "b" set data type text using "b"::text;',
     ]
     alter = b.alter_table_statements(b2, "t")
     assert alter == [
         'alter table t alter column "b" drop default;',
         'alter table t alter column "b" drop not null;',
-        'alter table t alter column "b" set data type varchar(10);',
+        'alter table t alter column "b" set data type varchar(10) using "b"::varchar(10);',
     ]
     b.add_column_clause == 'add column "b"'
     b.drop_column_clause == 'drop column "b"'
