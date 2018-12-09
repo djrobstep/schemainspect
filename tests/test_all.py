@@ -452,7 +452,7 @@ def asserts_pg(i):
     assert x.is_enum
     assert (
         x.change_enum_to_string_statement("t")
-        == 'alter table t alter column "x" set data type varchar;'
+        == 'alter table t alter column "x" set data type varchar using "x"::varchar;'
     )
     assert (
         x.change_string_to_enum_statement("t")
