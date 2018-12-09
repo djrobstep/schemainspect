@@ -85,8 +85,8 @@ class ColumnInfo(AutoRepr):
 
     def change_enum_to_string_statement(self, table_name):
         if self.is_enum:
-            return "alter table {} alter column {} set data type varchar;".format(
-                table_name, self.quoted_name
+            return "alter table {} alter column {} set data type varchar using {}::varchar;".format(
+                table_name, self.quoted_name, self.quoted_name
             )
 
         else:
@@ -155,8 +155,12 @@ class ColumnInfo(AutoRepr):
 
     @property
     def alter_data_type_clause(self):
-        return "alter column {} set data type {}{}".format(
-            self.quoted_name, self.dbtypestr, self.collation_subclause
+        return "alter column {} set data type {}{} using {}::{}".format(
+            self.quoted_name,
+            self.dbtypestr,
+            self.collation_subclause,
+            self.quoted_name,
+            self.dbtypestr,
         )
 
 

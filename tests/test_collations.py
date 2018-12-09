@@ -57,8 +57,11 @@ CREATE TABLE tt (
     assert t.collation is None
     assert tde.collation == "POSIX"
 
-    assert t.alter_data_type_clause == 'alter column "t" set data type text'
+    assert (
+        t.alter_data_type_clause
+        == 'alter column "t" set data type text using "t"::text'
+    )
     assert (
         tde.alter_data_type_clause
-        == 'alter column "tde" set data type text collate "POSIX"'
+        == 'alter column "tde" set data type text collate "POSIX" using "tde"::text'
     )
