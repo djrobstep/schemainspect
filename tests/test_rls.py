@@ -7,7 +7,9 @@ schemainspect_test_role = "schemainspect_test_role"
 
 def create_role(s, rolename):
     role = s.execute(
-        """SELECT 1 FROM pg_roles WHERE rolname=:rolename""",
+        f"""
+SELECT 1 FROM pg_roles WHERE rolname=:rolename
+    """,
         dict(rolename=rolename),
     )
 
@@ -15,7 +17,9 @@ def create_role(s, rolename):
 
     if not role_exists:
         s.execute(
-            """create role :rolename;""", dict(rolename=rolename),
+            f"""
+            create role {rolename};
+        """
         )
 
 
@@ -49,16 +53,16 @@ CREATE TABLE t(id uuid, a text, b decimal);
         create_role(s, schemainspect_test_role)
 
         s.execute(
-            """
+            f"""
 
 CREATE TABLE accounts (manager text, company text, contact_email text);
 
 ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY account_managers ON accounts TO :schemainspect_test_role
+CREATE POLICY account_managers ON accounts TO {schemainspect_test_role}
     USING (manager = current_user);
 
-        """, dict(schemainspect_test_role=schemainspect_test_role),
+        """
         )
         i = get_inspector(s)
 
