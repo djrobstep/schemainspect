@@ -146,9 +146,9 @@ def test_postgres_objects():
     assert ex == ex2
     ex2.version = "2.1"
     assert ex != ex2
-    ix = InspectedIndex("name", "schema", "table", "key_columns", "key_options",
-                        "num_att", "is_unique", "is_pk", "is_exclusion", "is_immediate",
-                        "is_clustered", "key_collations", "key_expressions", "partial_predicate",
+    ix = InspectedIndex("name", "schema", "table", "y", "0",
+                        "1", False, True, False, True,
+                        False, "0", None, None,
                         "create index name on t(x)")
     assert ix.drop_statement == 'drop index if exists "schema"."name";'
     assert ix.create_statement == "create index name on t(x);"
