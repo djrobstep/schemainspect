@@ -223,11 +223,14 @@ class InspectedFunction(InspectedSelectable):
 
 
 class InspectedTrigger(Inspected):
-    def __init__(self, name, schema, table_name, full_definition):
-        self.name, self.schema, self.table_name, self.full_definition = (
+    def __init__(self, name, schema, table_name, proc_schema, proc_name, enabled, full_definition):
+        self.name, self.schema, self.table_name, self.proc_schema, self.proc_name, self.enabled, self.full_definition = (
             name,
             schema,
             table_name,
+            proc_schema,
+            proc_name,
+            enabled,
             full_definition,
         )
 
@@ -250,16 +253,32 @@ class InspectedTrigger(Inspected):
             self.name == other.name
             and self.schema == other.schema
             and self.table_name == other.table_name
-            and self.full_definition == other.full_definition
+            and self.proc_schema == other.proc_schema
+            and self.proc_name == other.proc_name
+            and self.enabled == other.enabled
         )
 
 
 class InspectedIndex(Inspected, TableRelated):
-    def __init__(self, name, schema, table_name, definition=None):
+    def __init__(self, name, schema, table_name, key_columns, key_options,
+                 num_att, is_unique, is_pk, is_exclusion, is_immediate,
+                 is_clustered, key_collations, key_expressions, partial_predicate,
+                 definition=None):
         self.name = name
         self.schema = schema
         self.definition = definition
         self.table_name = table_name
+        self.key_columns = key_columns
+        self.key_options = key_options
+        self.num_att = num_att
+        self.is_unique = is_unique
+        self.is_pk = is_pk
+        self.is_exclusion = is_exclusion
+        self.is_immediate = is_immediate
+        self.is_clustered = is_clustered
+        self.key_collations = key_collations
+        self.key_expressions = key_expressions
+        self.partial_predicate = partial_predicate
 
     @property
     def drop_statement(self):
@@ -270,11 +289,25 @@ class InspectedIndex(Inspected, TableRelated):
         return "{};".format(self.definition)
 
     def __eq__(self, other):
+        """
+        :type other: InspectedIndex 
+        :rtype: bool 
+        """
         equalities = (
             self.name == other.name,
             self.schema == other.schema,
             self.table_name == other.table_name,
-            self.definition == other.definition,
+            self.key_columns == other.key_columns,
+            self.key_options == other.key_options,
+            self.num_att == other.num_att,
+            self.is_unique == other.is_unique,
+            self.is_pk == other.is_pk,
+            self.is_exclusion == other.is_exclusion,
+            self.is_immediate == other.is_immediate,
+            self.is_clustered == other.is_clustered,
+            self.key_collations == other.key_collations,
+            self.key_expressions == other.key_expressions,
+            self.partial_predicate == other.partial_predicate,
         )
         return all(equalities)
 
@@ -603,9 +636,13 @@ class PostgreSQL(DBInspector):
         def processed(q):
             if not include_internal:
                 q = q.replace("-- SKIP_INTERNAL", "")
+            if c.dialect.server_version_info[0] == 10:
+                q = q.replace('-- PG_10', '')
+            else:
+                q = q.replace('-- PG_!10', '')
             q = text(q)
             return q
-
+            
         self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY)
         self.INDEXES_QUERY = processed(INDEXES_QUERY)
         self.SEQUENCES_QUERY = processed(SEQUENCES_QUERY)
@@ -812,6 +849,18 @@ class PostgreSQL(DBInspector):
                 schema=i.schema,
                 definition=i.definition,
                 table_name=i.table_name,
+                key_columns=i.key_columns,
+                key_options=i.key_options,
+                num_att=i.num_att,
+                is_unique=i.is_unique,
+                is_pk=i.is_pk,
+                is_exclusion=i.is_exclusion,
+                is_immediate=i.is_immediate,
+                is_clustered=i.is_clustered,
+                key_collations=i.key_collations,
+                key_expressions=i.key_expressions,
+                partial_predicate=i.partial_predicate,
+
             )
             for i in q
         ]
@@ -914,7 +963,7 @@ class PostgreSQL(DBInspector):
     def load_triggers(self):
         q = self.c.execute(self.TRIGGERS_QUERY)
         triggers = [
-            InspectedTrigger(i.name, i.schema, i.table_name, i.full_definition)
+            InspectedTrigger(i.name, i.schema, i.table_name, i.proc_schema, i.proc_name, i.enabled, i.full_definition)
             for i in q
         ]  # type: list[InspectedTrigger]
         self.triggers = od((t.name, t) for t in triggers)

@@ -1,14 +1,18 @@
 select
   collname as name,
   n.nspname as schema,
-  case collprovider
-    when 'i' then 'icu'
-    when 'c' then 'libc'
-  end as provider,
+-- PG_10  case collprovider
+-- PG_10    when 'i' then 'icu'
+-- PG_10    when 'c' then 'libc'
+-- PG_10  end 
+-- PG_!10 'db'  
+  as provider,
   collencoding as encoding,
   collcollate as lc_collate,
   collctype as lc_ctype,
-  collversion as version
+-- PG_10  collversion
+-- PG_!10 null 
+  as version
 from
 pg_collation c
 INNER JOIN pg_namespace n
