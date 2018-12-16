@@ -154,7 +154,7 @@ def test_postgres_objects():
     assert ix.create_statement == "create index name on t(x);"
     ix2 = deepcopy(ix)
     assert ix == ix2
-    ix2.definition = "create index name on t(y)"
+    ix2.table_name = "table2"
     assert ix != ix2
     i = InspectedSequence("name", "schema")
     assert i.create_statement == 'create sequence "schema"."name";'
