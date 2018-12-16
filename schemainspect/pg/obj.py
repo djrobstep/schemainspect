@@ -642,7 +642,7 @@ class PostgreSQL(DBInspector):
                 q = q.replace('-- PG_!10', '')
             q = text(q)
             return q
-        
+
         self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY)
         self.INDEXES_QUERY = processed(INDEXES_QUERY)
         self.SEQUENCES_QUERY = processed(SEQUENCES_QUERY)
