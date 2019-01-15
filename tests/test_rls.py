@@ -62,6 +62,13 @@ ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY account_managers ON accounts TO {schemainspect_test_role}
     USING (manager = current_user);
 
+create policy "insert_gamer"
+on accounts
+as permissive
+for insert
+to {schemainspect_test_role}
+with check (manager = current_user);
+
         """
         )
         i = get_inspector(s)
@@ -104,3 +111,27 @@ using (manager = (CURRENT_USER)::text);
         assert t.roles == ["schemainspect_test_role"]
         assert t.qual == "(manager = (CURRENT_USER)::text)"
         assert t.withcheck is None
+
+        pname = '"public"."accounts"."insert_gamer"'
+        t = i.rlspolicies[pname]
+        assert t.name == "insert_gamer"
+        assert t.schema == "public"
+        assert t.table_name == "accounts"
+        assert t.commandtype == "a"
+        assert t.permissive is True
+        assert t.roles == ["schemainspect_test_role"]
+        assert t.withcheck == "(manager = (CURRENT_USER)::text)"
+        assert t.qual is None
+
+        assert (
+            t.create_statement
+            == """create policy "insert_gamer"
+on "public"."accounts"
+as permissive
+for insert
+to schemainspect_test_role
+with check (manager = (CURRENT_USER)::text);
+"""
+        )
+
+        assert t.drop_statement == 'drop policy "insert_gamer" on "public"."accounts";'

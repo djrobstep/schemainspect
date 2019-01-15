@@ -527,8 +527,7 @@ RLS_POLICY_CREATE = """create policy {name}
 on {table_name}
 as {permissiveness}
 for {commandtype_keyword}
-to {roleslist}
-using {qual}{withcheck_clause};
+to {roleslist}{qual_clause}{withcheck_clause};
 """
 
 COMMANDTYPES = {"*": "all", "r": "select", "a": "insert", "w": "update", "d": "delete"}
@@ -561,6 +560,11 @@ class InspectedRowPolicy(Inspected, TableRelated):
 
     @property
     def create_statement(self):
+        if self.qual:
+            qual_clause = "\nusing {}".format(self.qual)
+        else:
+            qual_clause = ""
+
         if self.withcheck:
             withcheck_clause = "\nwith check {}".format(self.withcheck)
         else:
@@ -574,7 +578,7 @@ class InspectedRowPolicy(Inspected, TableRelated):
             permissiveness=self.permissiveness,
             commandtype_keyword=self.commandtype_keyword,
             roleslist=roleslist,
-            qual=self.qual,
+            qual_clause=qual_clause,
             withcheck_clause=withcheck_clause,
         )
 
