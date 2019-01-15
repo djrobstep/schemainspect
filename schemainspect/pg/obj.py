@@ -531,7 +531,7 @@ to {roleslist}
 using {qual}{withcheck_clause};
 """
 
-COMMANDTYPES = {"*": "all", "r": "select", "a": "insert", "w": "delete"}
+COMMANDTYPES = {"*": "all", "r": "select", "a": "insert", "w": "update", "d": "delete"}
 
 
 class InspectedRowPolicy(Inspected, TableRelated):
