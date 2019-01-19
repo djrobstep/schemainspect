@@ -26,6 +26,24 @@ CREATES = """
 """
 
 
+def test_can_replace(db):
+    with S(db) as s:
+        s.execute(CREATES)
+
+    with S(db) as s:
+        i = get_inspector(s)
+        s.execute(
+            """
+create or replace view vvv as select similarity('aaa', 'aaabc')::decimal as x, 1 as y;
+        """
+        )
+        i2 = get_inspector(s)
+        v1 = i.views['"public"."vvv"']
+        v2 = i2.views['"public"."vvv"']
+        assert v1 != v2
+        assert v2.can_replace(v1)
+
+
 def test_relationships(db):
     # commented-out dependencies are the dependencies that aren't tracked directly by postgres
     with S(db) as s:

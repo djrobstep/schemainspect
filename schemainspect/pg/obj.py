@@ -57,7 +57,9 @@ class InspectedSelectable(BaseInspectedSelectable):
                     self.parent_table, self.partition_def
                 )
         elif self.relationtype == "v":
-            create_statement = "create view {} as {}\n".format(n, self.definition)
+            create_statement = "create or replace view {} as {}\n".format(
+                n, self.definition
+            )
         elif self.relationtype == "m":
             create_statement = "create materialized view {} as {}\n".format(
                 n, self.definition
@@ -75,9 +77,9 @@ class InspectedSelectable(BaseInspectedSelectable):
         if self.relationtype in ("r", "p"):
             drop_statement = "drop table {};".format(n)
         elif self.relationtype == "v":
-            drop_statement = "drop view if exists {} cascade;".format(n)
+            drop_statement = "drop view if exists {};".format(n)
         elif self.relationtype == "m":
-            drop_statement = "drop materialized view if exists {} cascade;".format(n)
+            drop_statement = "drop materialized view if exists {};".format(n)
         elif self.relationtype == "c":
             drop_statement = "drop type {};".format(n)
         else:
@@ -151,6 +153,18 @@ class InspectedSelectable(BaseInspectedSelectable):
     def alter_rls_statement(self):
         return self.alter_table_statement(self.alter_rls_clause)
 
+    def can_replace(self, other):
+        if self.relationtype not in ("v",):
+            return False
+
+        if (self.name, self.schema) != (other.name, other.schema):
+            return False
+        old_arg_count = len(other.columns)
+        items = list(self.columns.items())
+        items = items[:old_arg_count]
+        items = od(items)
+        return items == other.columns
+
 
 class InspectedFunction(InspectedSelectable):
     def __init__(
@@ -208,7 +222,16 @@ class InspectedFunction(InspectedSelectable):
 
     @property
     def drop_statement(self):
-        return "drop function if exists {} cascade;".format(self.signature)
+        return "drop function if exists {};".format(self.signature)
+
+    def can_replace(self, other):
+        if self.signature != other.signature:
+            return False
+        old_arg_count = len(other.columns)
+        items = list(self.columns.items())
+        items = items[:old_arg_count]
+        items = od(items)
+        return items == other.columns
 
     def __eq__(self, other):
         return (
@@ -229,6 +252,14 @@ class InspectedTrigger(Inspected):
             schema,
             table_name,
             full_definition,
+        )
+
+    @property
+    def quoted_full_name(self):
+        return "{}.{}.{}".format(
+            quoted_identifier(self.schema),
+            quoted_identifier(self.table_name),
+            quoted_identifier(self.name),
         )
 
     @property
@@ -921,7 +952,7 @@ class PostgreSQL(DBInspector):
             InspectedTrigger(i.name, i.schema, i.table_name, i.full_definition)
             for i in q
         ]  # type: list[InspectedTrigger]
-        self.triggers = od((t.name, t) for t in triggers)
+        self.triggers = od((t.quoted_full_name, t) for t in triggers)
 
     def one_schema(self, schema):
         props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations"
