@@ -36,6 +36,29 @@ RLSPOLICIES_QUERY = resource_text("sql/rlspolicies.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
+    def has_compatible_columns(self, other):
+
+        items = list(self.columns.items())
+
+        if self.relationtype != "f":
+            old_arg_count = len(other.columns)
+            items = items[:old_arg_count]
+
+        items = od(items)
+        return items == other.columns
+
+    def can_replace(self, other):
+        if not (self.relationtype in ("v", "f") or self.is_table):
+            return False
+
+        if self.signature != other.signature:
+            return False
+
+        if self.relationtype != other.relationtype:
+            return False
+
+        return self.has_compatible_columns(other)
+
     @property
     def create_statement(self):
         n = self.quoted_full_name
@@ -153,18 +176,6 @@ class InspectedSelectable(BaseInspectedSelectable):
     def alter_rls_statement(self):
         return self.alter_table_statement(self.alter_rls_clause)
 
-    def can_replace(self, other):
-        if self.relationtype not in ("v",):
-            return False
-
-        if (self.name, self.schema) != (other.name, other.schema):
-            return False
-        old_arg_count = len(other.columns)
-        items = list(self.columns.items())
-        items = items[:old_arg_count]
-        items = od(items)
-        return items == other.columns
-
 
 class InspectedFunction(InspectedSelectable):
     def __init__(
@@ -223,15 +234,6 @@ class InspectedFunction(InspectedSelectable):
     @property
     def drop_statement(self):
         return "drop function if exists {};".format(self.signature)
-
-    def can_replace(self, other):
-        if self.signature != other.signature:
-            return False
-        old_arg_count = len(other.columns)
-        items = list(self.columns.items())
-        items = items[:old_arg_count]
-        items = od(items)
-        return items == other.columns
 
     def __eq__(self, other):
         return (
