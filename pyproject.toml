@@ -24,3 +24,8 @@ flake8 = "*"
 isort = "*"
 migra = "*"
 black = {python=">3.6", version=">=18.9b0", allow_prereleases=true}
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+line_length = 88

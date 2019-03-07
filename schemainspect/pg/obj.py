@@ -248,7 +248,9 @@ class InspectedFunction(InspectedSelectable):
 
 
 class InspectedTrigger(Inspected):
-    def __init__(self, name, schema, table_name, proc_schema, proc_name, enabled, full_definition):
+    def __init__(
+        self, name, schema, table_name, proc_schema, proc_name, enabled, full_definition
+    ):
         self.name, self.schema, self.table_name, self.proc_schema, self.proc_name, self.enabled, self.full_definition = (
             name,
             schema,
@@ -294,10 +296,24 @@ class InspectedTrigger(Inspected):
 
 
 class InspectedIndex(Inspected, TableRelated):
-    def __init__(self, name, schema, table_name, key_columns, key_options,
-                 num_att, is_unique, is_pk, is_exclusion, is_immediate,
-                 is_clustered, key_collations, key_expressions, partial_predicate,
-                 definition=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        table_name,
+        key_columns,
+        key_options,
+        num_att,
+        is_unique,
+        is_pk,
+        is_exclusion,
+        is_immediate,
+        is_clustered,
+        key_collations,
+        key_expressions,
+        partial_predicate,
+        definition=None,
+    ):
         self.name = name
         self.schema = schema
         self.definition = definition
@@ -594,7 +610,6 @@ RLS_POLICY_CREATE = """create policy {name}
 on {table_name}
 as {permissiveness}
 for {commandtype_keyword}
-
 to {roleslist}{qual_clause}{withcheck_clause};
 """
 
@@ -676,9 +691,9 @@ class PostgreSQL(DBInspector):
             if not include_internal:
                 q = q.replace("-- SKIP_INTERNAL", "")
             if c.dialect.server_version_info[0] == 10:
-                q = q.replace('-- PG_10', '')
+                q = q.replace("-- PG_10", "")
             else:
-                q = q.replace('-- PG_!10', '')
+                q = q.replace("-- PG_!10", "")
             q = text(q)
             return q
 
@@ -899,7 +914,6 @@ class PostgreSQL(DBInspector):
                 key_collations=i.key_collations,
                 key_expressions=i.key_expressions,
                 partial_predicate=i.partial_predicate,
-
             )
             for i in q
         ]
@@ -1002,7 +1016,15 @@ class PostgreSQL(DBInspector):
     def load_triggers(self):
         q = self.c.execute(self.TRIGGERS_QUERY)
         triggers = [
-            InspectedTrigger(i.name, i.schema, i.table_name, i.proc_schema, i.proc_name, i.enabled, i.full_definition)
+            InspectedTrigger(
+                i.name,
+                i.schema,
+                i.table_name,
+                i.proc_schema,
+                i.proc_name,
+                i.enabled,
+                i.full_definition,
+            )
             for i in q
         ]  # type: list[InspectedTrigger]
         self.triggers = od((t.name, t) for t in triggers)

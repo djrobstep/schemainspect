@@ -33,25 +33,23 @@ r as (
           pg_get_viewdef(c.oid)
         else null end
           as definition,
--- PG_10        case when c.relpartbound is not null then
--- PG_10          (SELECT
--- PG_10              '"' || nmsp_parent.nspname || '"."' || parent.relname || '"' as parent
--- PG_10          FROM pg_inherits
--- PG_10              JOIN pg_class parent            ON pg_inherits.inhparent = parent.oid
--- PG_10              JOIN pg_class child             ON pg_inherits.inhrelid   = child.oid
--- PG_10              JOIN pg_namespace nmsp_parent   ON nmsp_parent.oid  = parent.relnamespace
--- PG_10              JOIN pg_namespace nmsp_child    ON nmsp_child.oid   = child.relnamespace
--- PG_10          where child.oid = c.oid
--- PG_10        )
--- PG_10        end 
--- PG_!10       null         
+        case when c.relpartbound is not null then
+          (SELECT
+              '"' || nmsp_parent.nspname || '"."' || parent.relname || '"' as parent
+          FROM pg_inherits
+              JOIN pg_class parent            ON pg_inherits.inhparent = parent.oid
+              JOIN pg_class child             ON pg_inherits.inhrelid   = child.oid
+              JOIN pg_namespace nmsp_parent   ON nmsp_parent.oid  = parent.relnamespace
+              JOIN pg_namespace nmsp_child    ON nmsp_child.oid   = child.relnamespace
+          where child.oid = c.oid
+        )
+        end
         as parent_table,
--- PG_10        case when c.relpartbound is not null then
--- PG_10          pg_get_expr(c.relpartbound, c.oid, true)
--- PG_10        when c.relhassubclass is not null then
--- PG_10          pg_catalog.pg_get_partkeydef(c.oid)
--- PG_10        end
--- PG_!10       null
+        case when c.relpartbound is not null then
+          pg_get_expr(c.relpartbound, c.oid, true)
+        when c.relhassubclass is not null then
+          pg_catalog.pg_get_partkeydef(c.oid)
+        end
         as partition_def,
         c.relrowsecurity::boolean as rowsecurity,
         c.relforcerowsecurity::boolean as forcerowsecurity

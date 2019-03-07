@@ -135,4 +135,3 @@ with check (manager = (CURRENT_USER)::text);
         )
 
         assert t.drop_statement == 'drop policy "insert_gamer" on "public"."accounts";'
-
