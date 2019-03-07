@@ -67,7 +67,7 @@ FDEF = """CREATE OR REPLACE FUNCTION public.films_f(d date, def_t text DEFAULT N
  LANGUAGE sql
 AS $function$select 'a'::varchar, '2014-01-01'::date$function$
 ;"""
-VDEF = """create view "public"."v_films" as  SELECT films.code,
+VDEF = """create or replace view "public"."v_films" as  SELECT films.code,
     films.title,
     films.did,
     films.date_prod,
@@ -338,7 +338,7 @@ def asserts_pg(i):
     assert v.create_statement == VDEF
     assert v == v
     assert v == deepcopy(v)
-    assert v.drop_statement == "drop view if exists {} cascade;".format(v_films)
+    assert v.drop_statement == "drop view if exists {};".format(v_films)
     v = i.views[v_films]
 
     # dependencies
@@ -358,9 +358,7 @@ def asserts_pg(i):
     assert list(i.materialized_views.keys()) == [mv_films]
     assert mv.columns == FILMS_COLUMNS
     assert mv.create_statement == MVDEF
-    assert mv.drop_statement == "drop materialized view if exists {} cascade;".format(
-        mv_films
-    )
+    assert mv.drop_statement == "drop materialized view if exists {};".format(mv_films)
 
     # materialized view indexes
     assert n("mv_films_title_idx") in mv.indexes
@@ -389,7 +387,7 @@ def asserts_pg(i):
     assert f.create_statement == FDEF
     assert (
         f.drop_statement
-        == 'drop function if exists "public"."films_f"(d date, def_t text, def_d date) cascade;'
+        == 'drop function if exists "public"."films_f"(d date, def_t text, def_d date);'
     )
     assert f.comment == "films_f comment"
     assert f2.comment is None

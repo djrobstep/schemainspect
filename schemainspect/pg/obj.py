@@ -36,6 +36,29 @@ RLSPOLICIES_QUERY = resource_text("sql/rlspolicies.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
+    def has_compatible_columns(self, other):
+
+        items = list(self.columns.items())
+
+        if self.relationtype != "f":
+            old_arg_count = len(other.columns)
+            items = items[:old_arg_count]
+
+        items = od(items)
+        return items == other.columns
+
+    def can_replace(self, other):
+        if not (self.relationtype in ("v", "f") or self.is_table):
+            return False
+
+        if self.signature != other.signature:
+            return False
+
+        if self.relationtype != other.relationtype:
+            return False
+
+        return self.has_compatible_columns(other)
+
     @property
     def create_statement(self):
         n = self.quoted_full_name
@@ -57,7 +80,9 @@ class InspectedSelectable(BaseInspectedSelectable):
                     self.parent_table, self.partition_def
                 )
         elif self.relationtype == "v":
-            create_statement = "create view {} as {}\n".format(n, self.definition)
+            create_statement = "create or replace view {} as {}\n".format(
+                n, self.definition
+            )
         elif self.relationtype == "m":
             create_statement = "create materialized view {} as {}\n".format(
                 n, self.definition
@@ -75,9 +100,9 @@ class InspectedSelectable(BaseInspectedSelectable):
         if self.relationtype in ("r", "p"):
             drop_statement = "drop table {};".format(n)
         elif self.relationtype == "v":
-            drop_statement = "drop view if exists {} cascade;".format(n)
+            drop_statement = "drop view if exists {};".format(n)
         elif self.relationtype == "m":
-            drop_statement = "drop materialized view if exists {} cascade;".format(n)
+            drop_statement = "drop materialized view if exists {};".format(n)
         elif self.relationtype == "c":
             drop_statement = "drop type {};".format(n)
         else:
@@ -208,7 +233,7 @@ class InspectedFunction(InspectedSelectable):
 
     @property
     def drop_statement(self):
-        return "drop function if exists {} cascade;".format(self.signature)
+        return "drop function if exists {};".format(self.signature)
 
     def __eq__(self, other):
         return (
@@ -235,6 +260,14 @@ class InspectedTrigger(Inspected):
         )
 
     @property
+    def quoted_full_name(self):
+        return "{}.{}.{}".format(
+            quoted_identifier(self.schema),
+            quoted_identifier(self.table_name),
+            quoted_identifier(self.name),
+        )
+
+    @property
     def drop_statement(self):
         return 'drop trigger if exists "{}" on "{}"."{}";'.format(
             self.name, self.schema, self.table_name
@@ -256,6 +289,7 @@ class InspectedTrigger(Inspected):
             and self.proc_schema == other.proc_schema
             and self.proc_name == other.proc_name
             and self.enabled == other.enabled
+            and self.full_definition == other.full_definition
         )
 
 
@@ -560,11 +594,11 @@ RLS_POLICY_CREATE = """create policy {name}
 on {table_name}
 as {permissiveness}
 for {commandtype_keyword}
-to {roleslist}
-using {qual}{withcheck_clause};
+
+to {roleslist}{qual_clause}{withcheck_clause};
 """
 
-COMMANDTYPES = {"*": "all", "r": "select", "a": "insert", "w": "delete"}
+COMMANDTYPES = {"*": "all", "r": "select", "a": "insert", "w": "update", "d": "delete"}
 
 
 class InspectedRowPolicy(Inspected, TableRelated):
@@ -594,6 +628,11 @@ class InspectedRowPolicy(Inspected, TableRelated):
 
     @property
     def create_statement(self):
+        if self.qual:
+            qual_clause = "\nusing {}".format(self.qual)
+        else:
+            qual_clause = ""
+
         if self.withcheck:
             withcheck_clause = "\nwith check {}".format(self.withcheck)
         else:
@@ -607,7 +646,7 @@ class InspectedRowPolicy(Inspected, TableRelated):
             permissiveness=self.permissiveness,
             commandtype_keyword=self.commandtype_keyword,
             roleslist=roleslist,
-            qual=self.qual,
+            qual_clause=qual_clause,
             withcheck_clause=withcheck_clause,
         )
 

@@ -26,6 +26,52 @@ CREATES = """
 """
 
 
+def test_can_replace(db):
+    with S(db) as s:
+        s.execute(CREATES)
+
+    with S(db) as s:
+        s.execute("""create table t(a int, b varchar);""")
+        i = get_inspector(s)
+        s.execute(
+            """
+create or replace view vvv as select similarity('aaa', 'aaabc')::decimal as x, 1 as y;
+        """
+        )
+        i2 = get_inspector(s)
+        v1 = i.views['"public"."vvv"']
+        v2 = i2.views['"public"."vvv"']
+        assert v1 != v2
+        assert v2.can_replace(v1)
+
+        s.execute(
+            """
+            drop function "public"."fff"(t text) cascade;
+        """
+        )
+        s.execute(
+            """
+            create or replace function "public"."fff"(t text)
+    returns TABLE(score decimal, x integer) as
+    $$ select similarity('aaa', 'aaabc')::decimal, 1 as x $$
+    language SQL VOLATILE CALLED ON NULL INPUT SECURITY INVOKER;
+            drop table t;
+            create table t(a int, b varchar, c int);
+        """
+        )
+        i2 = get_inspector(s)
+        f1 = i.selectables['"public"."fff"(t text)']
+        f2 = i2.selectables['"public"."fff"(t text)']
+        assert f1 != f2
+        assert f2.can_replace(f1) is False
+
+        t1 = i.selectables['"public"."t"']
+        t2 = i2.selectables['"public"."t"']
+
+        assert t2.can_replace(t1) is True
+        assert t1.can_replace(t2) is False
+
+
 def test_relationships(db):
     # commented-out dependencies are the dependencies that aren't tracked directly by postgres
     with S(db) as s:
