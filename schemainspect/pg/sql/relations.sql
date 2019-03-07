@@ -43,7 +43,8 @@ r as (
               JOIN pg_namespace nmsp_child    ON nmsp_child.oid   = child.relnamespace
           where child.oid = c.oid
         )
-        end as parent_table,
+        end
+        as parent_table,
         case when c.relpartbound is not null then
           pg_get_expr(c.relpartbound, c.oid, true)
         when c.relhassubclass is not null then

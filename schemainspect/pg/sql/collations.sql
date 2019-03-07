@@ -2,9 +2,11 @@ select
   collname as name,
   n.nspname as schema,
   case collprovider
+    when 'd' then 'database default'
     when 'i' then 'icu'
     when 'c' then 'libc'
-  end as provider,
+  end
+  as provider,
   collencoding as encoding,
   collcollate as lc_collate,
   collctype as lc_ctype,

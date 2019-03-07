@@ -146,12 +146,28 @@ def test_postgres_objects():
     assert ex == ex2
     ex2.version = "2.1"
     assert ex != ex2
-    ix = InspectedIndex("name", "schema", "table", "create index name on t(x)")
+    ix = InspectedIndex(
+        "name",
+        "schema",
+        "table",
+        "y",
+        "0",
+        "1",
+        False,
+        True,
+        False,
+        True,
+        False,
+        "0",
+        None,
+        None,
+        "create index name on t(x)",
+    )
     assert ix.drop_statement == 'drop index if exists "schema"."name";'
     assert ix.create_statement == "create index name on t(x);"
     ix2 = deepcopy(ix)
     assert ix == ix2
-    ix2.definition = "create index name on t(y)"
+    ix2.table_name = "table2"
     assert ix != ix2
     i = InspectedSequence("name", "schema")
     assert i.create_statement == 'create sequence "schema"."name";'
