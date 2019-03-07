@@ -125,9 +125,11 @@ workflows:
   build-then-publish:
     jobs:
       - build
+      - build-pg10
       - publish:
           requires:
             - build
+            - build-pg10
           filters:
             branches:
               only: master
