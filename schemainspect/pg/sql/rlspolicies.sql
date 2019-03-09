@@ -3,7 +3,8 @@ select
   n.nspname as schema,
   c.relname as table_name,
   p.polcmd as commandtype,
-  p.polpermissive as permissive,
+ -- PG_10 p.polpermissive as permissive,
+ -- PG_!10 NULL as permissive,
   (select array_agg(pg_get_userbyid(o))
     from unnest(p.polroles) as unn(o))
   as roles,
@@ -16,3 +17,4 @@ from
   JOIN pg_namespace n ON n.oid = c.relnamespace
 order by
   1
+;
