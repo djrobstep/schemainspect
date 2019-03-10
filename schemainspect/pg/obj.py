@@ -262,6 +262,10 @@ class InspectedTrigger(Inspected):
         )
 
     @property
+    def signature(self):
+        return self.quoted_full_name
+
+    @property
     def quoted_full_name(self):
         return "{}.{}.{}".format(
             quoted_identifier(self.schema),
@@ -1029,7 +1033,7 @@ class PostgreSQL(DBInspector):
             )
             for i in q
         ]  # type: list[InspectedTrigger]
-        self.triggers = od((t.name, t) for t in triggers)
+        self.triggers = od((t.signature, t) for t in triggers)
 
     def one_schema(self, schema):
         props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations"
