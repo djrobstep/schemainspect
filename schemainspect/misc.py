@@ -31,16 +31,13 @@ class AutoRepr(object):  # pragma: no cover
         return not self == other
 
 
-def quoted_identifier(identifier, schema=None):
-    try:
-        identifier, remainder = identifier.split("(", 1)
-        remainder = "(" + remainder
-    except ValueError:
-        remainder = ""
+def quoted_identifier(identifier, schema=None, identity_arguments=None):
     s = '"{}"'.format(identifier.replace('"', '""'))
     if schema:
         s = '"{}".{}'.format(schema.replace('"', '""'), s)
-    return s + remainder
+    if identity_arguments:
+        s = "{}({})".format(s, identity_arguments)
+    return s
 
 
 def external_caller():

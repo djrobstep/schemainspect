@@ -785,7 +785,9 @@ class PostgreSQL(DBInspector):
         for dep in q:
             x = quoted_identifier(dep.name, dep.schema)
             x_dependent_on = quoted_identifier(
-                dep.name_dependent_on, dep.schema_dependent_on
+                dep.name_dependent_on,
+                dep.schema_dependent_on,
+                dep.identity_arguments_dependent_on,
             )
             self.selectables[x].dependent_on.append(x_dependent_on)
             self.selectables[x].dependent_on.sort()

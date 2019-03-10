@@ -480,6 +480,13 @@ def asserts_pg(i):
         tid.change_string_to_enum_statement("t")
 
 
+def test_weird_names(db):
+    with S(db) as s:
+        s.execute("""create table "a(abc=3)"(id text)  """)
+        i = get_inspector(s)
+        assert list(i.tables.keys())[0] == '"public"."a(abc=3)"'
+
+
 def test_postgres_inspect(db):
     with S(db) as s:
         setup_pg_schema(s)
