@@ -524,7 +524,7 @@ class Redshift(DBInspector):
             self.functions[s.quoted_full_name + identity_arguments] = s
 
     def one_schema(self, schema):
-        props = "schemas relations tables views functions selectables sequences constraints indexes extensions privileges collations"
+        props = "schemas relations tables views functions selectables constraints indexes privileges"
         for prop in props.split():
             att = getattr(self, prop)
             filtered = {k: v for k, v in att.items() if v.schema == schema}
