@@ -361,7 +361,9 @@ class InspectedIndex(Inspected, TableRelated):
             self.is_clustered == other.is_clustered,
             self.key_collations == other.key_collations,
             self.key_expressions == other.key_expressions,
-            self.partial_predicate == other.partial_predicate,
+            (self.definition == other.definition
+             if self.definition is not None and other.definition is not None
+             else self.partial_predicate == other.partial_predicate),
         )
         return all(equalities)
 
