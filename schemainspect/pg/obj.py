@@ -37,15 +37,16 @@ RLSPOLICIES_QUERY = resource_text("sql/rlspolicies.sql")
 
 class InspectedSelectable(BaseInspectedSelectable):
     def has_compatible_columns(self, other):
+        def names_and_types(cols):
+            return [(k, c.dbtype) for k, c in cols.items()]
 
-        items = list(self.columns.items())
+        items = names_and_types(self.columns)
 
         if self.relationtype != "f":
             old_arg_count = len(other.columns)
             items = items[:old_arg_count]
 
-        items = od(items)
-        return items == other.columns
+        return items == names_and_types(other.columns)
 
     def can_replace(self, other):
         if not (self.relationtype in ("v", "f") or self.is_table):

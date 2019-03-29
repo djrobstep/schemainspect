@@ -56,7 +56,7 @@ create or replace view vvv as select similarity('aaa', 'aaabc')::decimal as x, 1
     $$ select similarity('aaa', 'aaabc')::decimal, 1 as x $$
     language SQL VOLATILE CALLED ON NULL INPUT SECURITY INVOKER;
             drop table t;
-            create table t(a int, b varchar, c int);
+            create table t(a int, b varchar primary key not null, c int);
         """
         )
         i2 = get_inspector(s)
