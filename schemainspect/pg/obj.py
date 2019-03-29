@@ -1036,7 +1036,7 @@ class PostgreSQL(DBInspector):
         self.triggers = od((t.signature, t) for t in triggers)
 
     def one_schema(self, schema):
-        props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations"
+        props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations triggers"
         for prop in props.split():
             att = getattr(self, prop)
             filtered = {k: v for k, v in att.items() if v.schema == schema}
