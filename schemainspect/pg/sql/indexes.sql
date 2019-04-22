@@ -15,7 +15,8 @@ with extension_oids as (
        indoption key_options, indnatts num_att, indisunique is_unique,
        indisprimary is_pk, indisexclusion is_exclusion, indimmediate is_immediate,
        indisclustered is_clustered, indcollation key_collations,
-       indexprs key_expressions, indpred partial_predicate
+       pg_get_expr(indexprs, indrelid) key_expressions,
+       pg_get_expr(indpred, indrelid) partial_predicate
   FROM pg_index x
     JOIN pg_class c ON c.oid = x.indrelid
     JOIN pg_class i ON i.oid = x.indexrelid
