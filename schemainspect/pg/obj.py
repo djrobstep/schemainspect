@@ -493,6 +493,36 @@ class InspectedSchema(Inspected):
     def __eq__(self, other):
         return self.schema == other.schema
 
+class InspectedType(Inspected):
+    def __init__(self, schema, name, columns):
+        self.schema = schema
+        self.name = name
+        self.columns = columns
+
+    @property
+    def drop_statement(self):
+        return "drop type {};".format(self.name)
+
+    @property
+    def create_statement(self):
+        sql = "create type {} as (\n ".format(self.name)
+        sql += ',\n '.join(
+            "{} {}".format(
+                quoted_identifier(name),
+                _type
+            )
+            for name, _type in self.columns.items()
+        )
+        sql = sql[:-1]
+        sql += "\n);"
+        return sql
+
+    def __eq__(self, other):
+        return (
+            self.schema == other.schema
+            and self.name == other.name
+            and json.dumps(self.columns) == json.dumps(other.columns)
+        )
 
 class InspectedExtension(Inspected):
     def __init__(self, name, schema, version):
