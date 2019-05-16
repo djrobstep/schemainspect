@@ -15,7 +15,7 @@ with extension_oids as (
     FROM
         pg_indexes
         -- SKIP_INTERNAL where schemaname not in ('pg_catalog', 'information_schema', 'pg_toast')
-				-- SKIP_INTERNAL and schemaname not like 'pg_temp_%' and schemaname not like 'pg_toast_temp_%'
+        -- SKIP_INTERNAL and schemaname not like 'pg_temp_%' and schemaname not like 'pg_toast_temp_%'
     order by
         schemaname, tablename, indexname
 )

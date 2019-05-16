@@ -24,6 +24,7 @@ ALL_RELATIONS_QUERY = resource_text("sql/relations.sql")
 SCHEMAS_QUERY = resource_text("sql/schemas.sql")
 INDEXES_QUERY = resource_text("sql/indexes.sql")
 SEQUENCES_QUERY = resource_text("sql/sequences.sql")
+IDENTITIES_QUERY = resource_text("sql/identities.sql")
 CONSTRAINTS_QUERY = resource_text("sql/constraints.sql")
 FUNCTIONS_QUERY = resource_text("sql/functions.sql")
 EXTENSIONS_QUERY = resource_text("sql/extensions.sql")
@@ -385,6 +386,35 @@ class InspectedSequence(Inspected):
         return all(equalities)
 
 
+class InspectedIdentity(Inspected):
+    def __init__(self, schema, table_name, column_name, generation_type):
+        self.schema = schema
+        self.table_name = table_name
+        self.column_name = column_name
+        self.generation_type = generation_type
+
+    @property
+    def drop_statement(self):
+        return "alter table {}.{} alter column {} drop identity;".format(
+            map(quoted_identifier, (self.schema, self.table_name, self.column_name))
+        )
+
+    @property
+    def create_statement(self):
+        return "alter table {}.{} alter column {} add generated {} as identity;".format(
+            map(quoted_identifier, (self.schema, self.table_name, self.column_name, self.generation_type))
+        )
+
+    def __eq__(self, other):
+        equalities = (
+            self.schema == other.schema,
+            self.table_name == other.table_name,
+            self.column_name == other.column_name,
+            self.generation_type == other.generation_type
+        )
+        return all(equalities)
+
+
 class InspectedCollation(Inspected):
     def __init__(self, name, schema, provider, encoding, lc_collate, lc_ctype, version):
         self.name = name
@@ -705,6 +735,7 @@ class PostgreSQL(DBInspector):
         self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY)
         self.INDEXES_QUERY = processed(INDEXES_QUERY)
         self.SEQUENCES_QUERY = processed(SEQUENCES_QUERY)
+        self.IDENTITIES_QUERY = processed(IDENTITIES_QUERY)
         self.CONSTRAINTS_QUERY = processed(CONSTRAINTS_QUERY)
         self.FUNCTIONS_QUERY = processed(FUNCTIONS_QUERY)
         self.EXTENSIONS_QUERY = processed(EXTENSIONS_QUERY)
@@ -1054,6 +1085,7 @@ class PostgreSQL(DBInspector):
             and self.schemas == other.schemas
             and self.relations == other.relations
             and self.sequences == other.sequences
+            and self.identities == other.identities
             and self.enums == other.enums
             and self.constraints == other.constraints
             and self.extensions == other.extensions
