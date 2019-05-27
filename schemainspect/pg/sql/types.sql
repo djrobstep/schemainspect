@@ -15,7 +15,7 @@ SELECT
         FROM pg_catalog.pg_enum e
         WHERE e.enumtypid = t.oid
         ORDER BY e.oid ), E'\n'
-    ) AS elements,
+    ) AS columns,
   pg_catalog.obj_description (t.oid, 'pg_type') AS description,
   (array_to_json(array(
     select
@@ -24,7 +24,7 @@ SELECT
     join pg_attribute on (attrelid = pg_class.oid)
     join pg_type a on (atttypid = a.oid)
     where (pg_class.reltype = t.oid)
-  )))
+  ))) as columns
 FROM pg_catalog.pg_type t
 LEFT JOIN pg_catalog.pg_namespace n
   ON n.oid = t.typnamespace

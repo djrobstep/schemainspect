@@ -21,11 +21,14 @@ returns {result_string} as
 $${definition}$$
 language {language} {volatility} {strictness} {security_type};"""
 ALL_RELATIONS_QUERY = resource_text("sql/relations.sql")
+ALL_RELATIONS_QUERY_9 = resource_text("sql/relations9.sql")
 SCHEMAS_QUERY = resource_text("sql/schemas.sql")
 INDEXES_QUERY = resource_text("sql/indexes.sql")
 SEQUENCES_QUERY = resource_text("sql/sequences.sql")
 CONSTRAINTS_QUERY = resource_text("sql/constraints.sql")
 FUNCTIONS_QUERY = resource_text("sql/functions.sql")
+TYPES_QUERY = resource_text("sql/types.sql")
+DOMAINS_QUERY = resource_text("sql/domains.sql")
 EXTENSIONS_QUERY = resource_text("sql/extensions.sql")
 ENUMS_QUERY = resource_text("sql/enums.sql")
 DEPS_QUERY = resource_text("sql/deps.sql")
@@ -493,27 +496,28 @@ class InspectedSchema(Inspected):
     def __eq__(self, other):
         return self.schema == other.schema
 
+
 class InspectedType(Inspected):
-    def __init__(self, schema, name, columns):
-        self.schema = schema
+    def __init__(self, name, schema, columns):
         self.name = name
+        self.schema = schema
         self.columns = columns
 
     @property
     def drop_statement(self):
-        return "drop type {};".format(self.name)
+        return "drop type {};".format(self.signature)
 
     @property
     def create_statement(self):
-        sql = "create type {} as (\n ".format(self.name)
-        sql += ',\n '.join(
-            "{} {}".format(
-                quoted_identifier(name),
-                _type
-            )
+        sql = "create type {} as (\n".format(self.signature)
+
+        indent = " " * 4
+        typespec = [
+            "{}{} {}".format(indent, quoted_identifier(name), _type)
             for name, _type in self.columns.items()
-        )
-        sql = sql[:-1]
+        ]
+
+        sql += ",\n".join(typespec)
         sql += "\n);"
         return sql
 
@@ -521,8 +525,97 @@ class InspectedType(Inspected):
         return (
             self.schema == other.schema
             and self.name == other.name
-            and json.dumps(self.columns) == json.dumps(other.columns)
+            and self.columns == other.columns
         )
+
+
+class InspectedDomain(Inspected):
+    def __init__(
+        self,
+        name,
+        schema,
+        data_type,
+        collation,
+        constraint_name,
+        not_null,
+        default,
+        check,
+    ):
+        self.name = name
+        self.schema = schema
+        self.data_type = data_type
+        self.collation = collation
+        self.constraint_name = constraint_name
+        self.not_null = not_null
+        self.default = default
+        self.check = check
+
+    @property
+    def drop_statement(self):
+        return "drop domain {};".format(self.signature)
+
+    @property
+    def create_statement(self):
+        T = """\
+create domain {name}
+as {_type}
+{collation}{default}{nullable}{check}
+"""
+
+        sql = T.format(
+            name=self.signature,
+            _type=self.data_type,
+            collation=self.collation_clause,
+            default=self.default_clause,
+            check=self.check_clause,
+            nullable=self.nullable_clause
+        )
+
+        return sql
+
+    @property
+    def check_clause(self):
+        if self.check:
+            return "{}\n".format(self.check)
+
+        return ""
+
+    @property
+    def collation_clause(self):
+        if self.collation:
+            return "collation {}\n".format(self.collation)
+
+        return ""
+
+    @property
+    def default_clause(self):
+        if self.default:
+            return "default {}\n".format(self.default)
+
+        return ""
+
+    @property
+    def nullable_clause(self):
+        if self.not_null:
+            return "not null\n"
+        else:
+            return "null\n"
+
+    equality_attributes = (
+        "schema name data_type collation default constraint_name not_null check".split()
+    )
+
+    def __eq__(self, other):
+        try:
+            return all(
+                [
+                    getattr(self, a) == getattr(other, a)
+                    for a in self.equality_attributes
+                ]
+            )
+        except AttributeError:
+            return False
+
 
 class InspectedExtension(Inspected):
     def __init__(self, name, schema, version):
@@ -722,21 +815,24 @@ class InspectedRowPolicy(Inspected, TableRelated):
 
 class PostgreSQL(DBInspector):
     def __init__(self, c, include_internal=False):
+        pg_version = c.dialect.server_version_info[0]
+
         def processed(q):
             if not include_internal:
                 q = q.replace("-- SKIP_INTERNAL", "")
-            if c.dialect.server_version_info[0] == 10:
-                q = q.replace("-- PG_10", "")
-            else:
-                q = q.replace("-- PG_!10", "")
             q = text(q)
             return q
 
-        self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY)
+        if pg_version <= 9:
+            self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY_9)
+        else:
+            self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY)
         self.INDEXES_QUERY = processed(INDEXES_QUERY)
         self.SEQUENCES_QUERY = processed(SEQUENCES_QUERY)
         self.CONSTRAINTS_QUERY = processed(CONSTRAINTS_QUERY)
         self.FUNCTIONS_QUERY = processed(FUNCTIONS_QUERY)
+        self.TYPES_QUERY = processed(TYPES_QUERY)
+        self.DOMAINS_QUERY = processed(DOMAINS_QUERY)
         self.EXTENSIONS_QUERY = processed(EXTENSIONS_QUERY)
         self.ENUMS_QUERY = processed(ENUMS_QUERY)
         self.DEPS_QUERY = processed(DEPS_QUERY)
@@ -760,6 +856,8 @@ class PostgreSQL(DBInspector):
         self.load_triggers()
         self.load_collations()
         self.load_rlspolicies()
+        self.load_types()
+        self.load_domains()
 
     def load_schemas(self):
         q = self.c.execute(self.SCHEMAS_QUERY)
@@ -1065,6 +1163,38 @@ class PostgreSQL(DBInspector):
             for i in q
         ]  # type: list[InspectedTrigger]
         self.triggers = od((t.signature, t) for t in triggers)
+
+    def load_types(self):
+        q = self.c.execute(self.TYPES_QUERY)
+
+        def col(defn):
+            return defn["attribute"], defn["type"]
+
+        types = [
+            InspectedType(i.name, i.schema, dict(col(_) for _ in i.columns)) for i in q
+        ]  # type: list[InspectedType]
+        self.types = od((t.signature, t) for t in types)
+
+    def load_domains(self):
+        q = self.c.execute(self.DOMAINS_QUERY)
+
+        def col(defn):
+            return defn["attribute"], defn["type"]
+
+        domains = [
+            InspectedDomain(
+                i.name,
+                i.schema,
+                i.data_type,
+                i.collation,
+                i.constraint_name,
+                i.not_null,
+                i.default,
+                i.check,
+            )
+            for i in q
+        ]  # type: list[InspectedType]
+        self.domains = od((t.signature, t) for t in domains)
 
     def one_schema(self, schema):
         props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations triggers"
