@@ -5,7 +5,7 @@ select
   collencoding as encoding,
   collcollate as lc_collate,
   collctype as lc_ctype,
-  collversion as version
+  null as version
 from
 pg_collation c
 INNER JOIN pg_namespace n
