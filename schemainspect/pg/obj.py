@@ -35,6 +35,7 @@ DEPS_QUERY = resource_text("sql/deps.sql")
 PRIVILEGES_QUERY = resource_text("sql/privileges.sql")
 TRIGGERS_QUERY = resource_text("sql/triggers.sql")
 COLLATIONS_QUERY = resource_text("sql/collations.sql")
+COLLATIONS_QUERY_9 = resource_text("sql/collations9.sql")
 RLSPOLICIES_QUERY = resource_text("sql/rlspolicies.sql")
 
 
@@ -825,8 +826,10 @@ class PostgreSQL(DBInspector):
 
         if pg_version <= 9:
             self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY_9)
+            self.COLLATIONS_QUERY = processed(COLLATIONS_QUERY_9)
         else:
             self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY)
+            self.COLLATIONS_QUERY = processed(COLLATIONS_QUERY)
         self.INDEXES_QUERY = processed(INDEXES_QUERY)
         self.SEQUENCES_QUERY = processed(SEQUENCES_QUERY)
         self.CONSTRAINTS_QUERY = processed(CONSTRAINTS_QUERY)
@@ -839,7 +842,6 @@ class PostgreSQL(DBInspector):
         self.SCHEMAS_QUERY = processed(SCHEMAS_QUERY)
         self.PRIVILEGES_QUERY = processed(PRIVILEGES_QUERY)
         self.TRIGGERS_QUERY = processed(TRIGGERS_QUERY)
-        self.COLLATIONS_QUERY = processed(COLLATIONS_QUERY)
         self.RLSPOLICIES_QUERY = processed(RLSPOLICIES_QUERY)
         super(PostgreSQL, self).__init__(c, include_internal)
 
