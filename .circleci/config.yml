@@ -173,6 +173,7 @@ workflows:
     jobs:
       - build
       - build-pg10
+      - build-pg9
       - publish:
           requires:
             - build
