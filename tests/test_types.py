@@ -9,7 +9,9 @@ CREATE TYPE compfoo AS (f1 int, f2 text);
 
 CREATE DOMAIN us_postal_code AS TEXT
 {};
-""".format(CHECK)
+""".format(
+    CHECK
+)
 
 
 def test_types_and_domains(db):
@@ -44,23 +46,24 @@ create type "public"."compfoo" as (
         postal = i.domains['"public"."us_postal_code"']
 
         assert postal.data_type == "text"
-        assert postal.not_null == False
+        assert postal.not_null is False
         assert postal.constraint_name == "us_postal_code_check"
 
+        assert postal.check == CHECK
 
         assert (
-            postal.check
-            == CHECK
-        )
-
-        assert postal.create_statement == """\
+            postal.create_statement
+            == """\
 create domain "public"."us_postal_code"
 as text
 null
 {}
 
-""".format(CHECK)
+""".format(
+                CHECK
+            )
+        )
         assert postal.drop_statement == """drop domain "public"."us_postal_code";"""
 
-        postal.name = 'postal2'
+        postal.name = "postal2"
         s.execute(postal.create_statement)

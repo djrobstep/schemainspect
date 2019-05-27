@@ -568,7 +568,7 @@ as {_type}
             collation=self.collation_clause,
             default=self.default_clause,
             check=self.check_clause,
-            nullable=self.nullable_clause
+            nullable=self.nullable_clause,
         )
 
         return sql
