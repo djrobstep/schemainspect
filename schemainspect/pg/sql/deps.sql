@@ -15,6 +15,9 @@ with things1 as (
     null as identity_arguments,
     relkind as kind
   from pg_class
+  where oid not in (
+    select ftrelid from pg_foreign_table
+  )
 ),
 extension_objids as (
   select
