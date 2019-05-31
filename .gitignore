@@ -42,3 +42,15 @@ nosetests.xml
 scratch
 poetry.lock
 .DS_Store
+
+# Pipenv
+Pipfile
+Pipfile.lock
+
+# Setuptools
+pip-wheel-metadata/
+requirements.txt
+setup.py
+
+# VSCode
+.vscode/
