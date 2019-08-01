@@ -16,10 +16,10 @@ def test_inspected_privilege():
     assert b != b2
     assert (
         b2.create_statement
-        == 'grant modify on function "schema"."test_function" to test_user;'
+        == 'grant modify on function "schema"."test_function" to "test_user";'
     )
     assert (
         b.drop_statement
-        == 'revoke execute on function "schema"."test_function" from test_user;'
+        == 'revoke execute on function "schema"."test_function" from "test_user";'
     )
-    assert a.key == ("table", '"public"."test_table"', "test_user", "select")
+    assert a.key == ("table", '"public"."test_table"', '"test_user"', "select")
