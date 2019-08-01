@@ -586,13 +586,13 @@ class InspectedPrivilege(Inspected):
 
     @property
     def drop_statement(self):
-        return "revoke {} on {} {} from {};".format(
+        return "revoke {} on {} {} from \"{}\";".format(
             self.privilege, self.object_type, self.quoted_full_name, self.target_user
         )
 
     @property
     def create_statement(self):
-        return "grant {} on {} {} to {};".format(
+        return "grant {} on {} {} to \"{}\";".format(
             self.privilege, self.object_type, self.quoted_full_name, self.target_user
         )
 
