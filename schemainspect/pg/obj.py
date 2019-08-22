@@ -585,15 +585,21 @@ class InspectedPrivilege(Inspected):
         self.target_user = target_user
 
     @property
+    def quoted_target_user(self):
+        return quoted_identifier(self.target_user)
+
+    @property
     def drop_statement(self):
-        return "revoke {} on {} {} from \"{}\";".format(
-            self.privilege, self.object_type, self.quoted_full_name, self.target_user
+        return "revoke {} on {} {} from {};".format(
+            self.privilege, self.object_type, self.quoted_full_name,
+            self.quoted_target_user
         )
 
     @property
     def create_statement(self):
-        return "grant {} on {} {} to \"{}\";".format(
-            self.privilege, self.object_type, self.quoted_full_name, self.target_user
+        return "grant {} on {} {} to {};".format(
+            self.privilege, self.object_type, self.quoted_full_name,
+            self.quoted_target_user
         )
 
     def __eq__(self, other):
