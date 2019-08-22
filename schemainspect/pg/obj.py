@@ -1009,7 +1009,10 @@ class PostgreSQL(DBInspector):
                 identity_arguments=f.identity_arguments,
                 result_string=f.result_string,
                 language=f.language,
-                definition=f.definition,
+                
+                # Proof of concept for line-ending normalisation
+                definition='\n'.join(f.definition.splitlines()),
+                
                 strictness=f.strictness,
                 security_type=f.security_type,
                 volatility=f.volatility,
