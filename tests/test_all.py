@@ -444,8 +444,8 @@ def asserts_pg(i):
     # privileges
     g = InspectedPrivilege("table", "public", "films", "select", "postgres")
     g = i.privileges[g.key]
-    assert g.create_statement == "grant select on table {} to postgres;".format(t_films)
-    assert g.drop_statement == "revoke select on table {} from postgres;".format(
+    assert g.create_statement == 'grant select on table {} to "postgres";'.format(t_films)
+    assert g.drop_statement == 'revoke select on table {} from "postgres";'.format(
         t_films
     )
 

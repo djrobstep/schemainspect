@@ -60,14 +60,14 @@ CREATE TABLE accounts (manager text, company text, contact_email text);
 ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY account_managers ON accounts TO {schemainspect_test_role}
-    USING (manager = current_user);
+    USING (manager = (CURRENT_USER)::text);
 
 create policy "insert_gamer"
 on accounts
 as permissive
 for insert
 to {schemainspect_test_role}
-with check (manager = current_user);
+with check (manager = (CURRENT_USER)::text);
 
         """
         )
