@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict as od
 from itertools import groupby
+from textwrap import dedent
 
 from sqlalchemy import text
 
@@ -235,7 +236,7 @@ class InspectedFunction(InspectedSelectable):
         self.volatility = volatility
         self.strictness = strictness
         self.security_type = security_type
-        self.full_definition = full_definition
+        self.full_definition = self._strip_definition(full_definition)
         self.returntype = returntype
 
         super(InspectedFunction, self).__init__(
@@ -247,6 +248,11 @@ class InspectedFunction(InspectedSelectable):
             relationtype="f",
             comment=comment,
         )
+
+    @staticmethod
+    def _strip_definition(definition):
+        definition_lines = definition.splitlines()
+        return '\n'.join((dedent(line) for line in definition_lines))
 
     @property
     def returntype_is_table(self):
@@ -279,7 +285,7 @@ class InspectedFunction(InspectedSelectable):
         return (
             self.signature == other.signature
             and self.result_string == other.result_string
-            and self.definition == other.definition
+            and self.full_definition == other.full_definition
             and self.language == other.language
             and self.volatility == other.volatility
             and self.strictness == other.strictness
