@@ -4,6 +4,8 @@ with r1 as (
             r.routine_schema as schema,
             r.specific_name as specific_name,
             r.data_type,
+            r.type_udt_schema,
+            r.type_udt_name,
             r.external_language,
             r.routine_definition as definition
         FROM information_schema.routines r
@@ -74,7 +76,12 @@ with r1 as (
         SELECT
             r.schema as schema,
             r.name as name,
-            r.data_type as returntype,
+            case when r.data_type = 'USER-DEFINED' then
+              '"' || r.type_udt_schema || '"."' || r.type_udt_name || '"'
+            else
+              r.data_type
+            end as returntype,
+            r.data_type = 'USER-DEFINED' as has_user_defined_returntype,
             p.parameter_name as parameter_name,
             p.data_type as data_type,
             p.parameter_mode as parameter_mode,

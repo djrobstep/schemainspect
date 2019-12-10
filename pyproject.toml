@@ -23,7 +23,7 @@ psycopg2-binary = "*"
 flake8 = "*"
 isort = "*"
 migra = "*"
-black = {python=">3.6", version=">=18.9b0", allow_prereleases=true}
+black = { version = ">=19.10b0", python=">=3.6" }
 
 [tool.isort]
 multi_line_output = 3

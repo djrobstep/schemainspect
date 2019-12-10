@@ -5,6 +5,11 @@ from schemainspect import get_inspector
 
 def test_collations(db):
     with S(db) as s:
+        i = get_inspector(s)
+
+        if i.pg_version <= 9:
+            return
+
         s.execute(
             """
 CREATE TABLE measurement (
@@ -21,7 +26,7 @@ CREATE COLLATION naturalsort (provider = icu, locale = 'en-u-kn-true');
         """
         )
 
-    i = get_inspector(s)
+        i = get_inspector(s)
     assert list(i.collations) == ['"public"."naturalsort"', '"x"."german"']
 
     gc = i.collations['"x"."german"']
