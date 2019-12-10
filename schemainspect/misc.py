@@ -30,6 +30,9 @@ class AutoRepr(object):  # pragma: no cover
     def __ne__(self, other):
         return not self == other
 
+    def is_equal(self, other, ignore_newlines=True):
+        return self.__eq__(other)
+
 
 def quoted_identifier(identifier, schema=None, identity_arguments=None):
     s = '"{}"'.format(identifier.replace('"', '""'))
