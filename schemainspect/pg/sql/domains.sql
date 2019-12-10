@@ -1,3 +1,11 @@
+with extension_oids as (
+  select
+      objid
+  from
+      pg_depend d
+  WHERE
+      d.refclassid = 'pg_extension'::regclass
+)
 SELECT n.nspname as "schema",
        t.typname as "name",
        pg_catalog.format_type(t.typbasetype, t.typtypmod) as "data_type",
@@ -16,4 +24,5 @@ WHERE t.typtype = 'd'
       AND n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
   AND pg_catalog.pg_type_is_visible(t.oid)
+  and t.oid not in (select * from extension_oids)
 ORDER BY 1, 2;

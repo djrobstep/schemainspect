@@ -27,11 +27,9 @@ def test_lineendings(db):
     with S(db) as s:
         s.execute(FUNC_N)
         i = get_inspector(s)
-        print(list(i.functions.keys()))
         f = i.functions['"public"."depends_on_vvv"(t text)']
 
         assert f.definition == "select\r\n1"
-        # ass
 
 
 def test_types_and_domains(db):

@@ -328,6 +328,7 @@ class InspectedIndex(Inspected, TableRelated):
         key_expressions,
         partial_predicate,
         definition=None,
+        constraint=None
     ):
         self.name = name
         self.schema = schema
@@ -344,6 +345,7 @@ class InspectedIndex(Inspected, TableRelated):
         self.key_collations = key_collations
         self.key_expressions = key_expressions
         self.partial_predicate = partial_predicate
+        self.constraint = constraint
 
     @property
     def drop_statement(self):
@@ -373,6 +375,7 @@ class InspectedIndex(Inspected, TableRelated):
             self.key_collations == other.key_collations,
             self.key_expressions == other.key_expressions,
             self.partial_predicate == other.partial_predicate,
+            # self.constraint == other.constraint
         )
         return all(equalities)
 
@@ -1082,8 +1085,11 @@ class PostgreSQL(DBInspector):
         sequencelist = [InspectedSequence(name=i.name, schema=i.schema) for i in q]
         self.sequences = od((i.quoted_full_name, i) for i in sequencelist)
         q = self.c.execute(self.CONSTRAINTS_QUERY)
-        constraintlist = [
-            InspectedConstraint(
+
+        constraintlist = []
+
+        for i in q:
+            constraint = InspectedConstraint(
                 name=i.name,
                 schema=i.schema,
                 constraint_type=i.constraint_type,
@@ -1091,9 +1097,16 @@ class PostgreSQL(DBInspector):
                 definition=i.definition,
                 index=i.index,
             )
-            for i in q
-        ]
+            if constraint.index:
+                index_name = quoted_identifier(i.index, schema=i.schema)
+                index = self.indexes[index_name]
+                index.constraint = constraint
+                constraint.index = index
+
+            constraintlist.append(constraint)
+
         self.constraints = od((i.quoted_full_name, i) for i in constraintlist)
+
         q = self.c.execute(self.EXTENSIONS_QUERY)
         extensionlist = [
             InspectedExtension(name=i.name, schema=i.schema, version=i.version)

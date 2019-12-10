@@ -32,3 +32,23 @@ def test_indexes(db):
         i2 = get_inspector(s, schema="it")
 
         assert i1.indexes == i2.indexes
+
+
+CREATE_CONST = """
+create table t(id uuid primary key, x bigint);
+
+"""
+
+
+def test_constraints(db):
+     with S(db) as s:
+        s.execute(CREATE_CONST)
+
+        i = get_inspector(s)
+        constraints_keys = list(i.constraints.keys())
+        assert constraints_keys == ['"public"."t"."t_pkey"']
+
+        indexes_keys = list(i.indexes.keys())
+
+        assert indexes_keys == ['"public"."t_pkey"']
+
