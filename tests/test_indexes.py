@@ -41,7 +41,7 @@ create table t(id uuid primary key, x bigint);
 
 
 def test_constraints(db):
-     with S(db) as s:
+    with S(db) as s:
         s.execute(CREATE_CONST)
 
         i = get_inspector(s)
@@ -51,4 +51,3 @@ def test_constraints(db):
         indexes_keys = list(i.indexes.keys())
 
         assert indexes_keys == ['"public"."t_pkey"']
-

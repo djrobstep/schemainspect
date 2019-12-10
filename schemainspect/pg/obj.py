@@ -328,7 +328,7 @@ class InspectedIndex(Inspected, TableRelated):
         key_expressions,
         partial_predicate,
         definition=None,
-        constraint=None
+        constraint=None,
     ):
         self.name = name
         self.schema = schema
