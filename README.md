@@ -2,7 +2,7 @@
 
 Schema inspection for PostgreSQL (and potentially others in the future).
 
-Inspects tables, views, materialized views, constraints, indexes, sequences, enums, functions, and extensions.
+Inspects tables, views, materialized views, constraints, indexes, sequences, enums, functions, and extensions. Handles table partitioning and inheritance.
 
 **Limitations:** Function inspection only confirmed to work with SQL/PLPGSQL languages so far.
 
