@@ -12,7 +12,7 @@ from ..inspector import DBInspector
 from ..misc import quoted_identifier, resource_text
 
 CREATE_TABLE = """create table {} ({}
-){};
+){}{};
 """
 CREATE_TABLE_SUBCLASS = """create table partition of {} {};
 """
@@ -68,18 +68,28 @@ class InspectedSelectable(BaseInspectedSelectable):
     def create_statement(self):
         n = self.quoted_full_name
         if self.relationtype in ("r", "p"):
-            if self.parent_table is None:
+            if (
+                not self.is_partitioning_child_table
+            ):
                 colspec = ",\n".join(
                     "    " + c.creation_clause for c in self.columns.values()
                 )
                 if colspec:
                     colspec = "\n" + colspec
+
                 if self.partition_def:
                     partition_key = " partition by " + self.partition_def
+                    inherits_clause = ""
+                elif self.parent_table:
+                    inherits_clause = " inherits ({})".format(self.parent_table)
+                    partition_key = ""
                 else:
                     partition_key = ""
+                    inherits_clause = ""
 
-                create_statement = CREATE_TABLE.format(n, colspec, partition_key)
+                create_statement = CREATE_TABLE.format(
+                    n, colspec, partition_key, inherits_clause
+                )
             else:
                 create_statement = CREATE_TABLE_SUBCLASS.format(
                     self.parent_table, self.partition_def
@@ -128,6 +138,10 @@ class InspectedSelectable(BaseInspectedSelectable):
         return self.relationtype == "p"
 
     @property
+    def is_inheritance_child_table(self):
+        return bool(self.parent_table) and not self.partition_def
+
+    @property
     def is_table(self):
         return self.relationtype in ("p", "r")
 
@@ -141,27 +155,44 @@ class InspectedSelectable(BaseInspectedSelectable):
             self.relationtype == "r" and (self.parent_table or not self.partition_def)
         )
 
+    # for back-compat only
     @property
     def is_child_table(self):
-        return bool(self.relationtype == "r" and self.parent_table)
+        return self.is_partitioning_child_table
+
+    @property
+    def is_partitioning_child_table(self):
+        return bool(
+            self.relationtype == "r" and self.parent_table and self.partition_def
+        )
 
     @property
     def uses_partitioning(self):
-        return self.is_child_table or self.is_partitioned
+        return self.is_partitioning_child_table or self.is_partitioned
 
     @property
     def attach_statement(self):
         if self.parent_table:
-            return "alter table {} attach partition {} {};".format(
-                self.quoted_full_name, self.parent_table, self.partition_spec
-            )
+            if self.partition_def:
+                return "alter table {} attach partition {} {};".format(
+                    self.quoted_full_name, self.parent_table, self.partition_spec
+                )
+            else:
+                return "alter table {} inherit {}".format(
+                    self.quoted_full_name, self.parent_table
+                )
 
     @property
     def detach_statement(self):
         if self.parent_table:
-            return "alter table {} detach partition {};".format(
-                self.parent_table, self.quoted_full_name
-            )
+            if self.partition_def:
+                return "alter table {} detach partition {};".format(
+                    self.parent_table, self.quoted_full_name
+                )
+            else:
+                return "alter table {} no inherit {}".format(
+                    self.quoted_full_name, self.parent_table
+                )
 
     def attach_detach_statements(self, before):
         slist = []
@@ -983,8 +1014,10 @@ class PostgreSQL(DBInspector):
         return od((k, v) for k, v in self.tables.items() if v.contains_data)
 
     @property
-    def child_tables(self):
-        return od((k, v) for k, v in self.tables.items() if v.is_child_table)
+    def partitioning_child_tables(self):
+        return od(
+            (k, v) for k, v in self.tables.items() if v.is_partitioning_child_table
+        )
 
     @property
     def tables_using_partitioning(self):

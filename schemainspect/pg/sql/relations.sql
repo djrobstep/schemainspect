@@ -33,17 +33,14 @@ r as (
           pg_get_viewdef(c.oid)
         else null end
           as definition,
-        case when c.relpartbound is not null then
-          (SELECT
+        (SELECT
               '"' || nmsp_parent.nspname || '"."' || parent.relname || '"' as parent
           FROM pg_inherits
               JOIN pg_class parent            ON pg_inherits.inhparent = parent.oid
               JOIN pg_class child             ON pg_inherits.inhrelid   = child.oid
               JOIN pg_namespace nmsp_parent   ON nmsp_parent.oid  = parent.relnamespace
               JOIN pg_namespace nmsp_child    ON nmsp_child.oid   = child.relnamespace
-          where child.oid = c.oid
-        )
-        end
+          where child.oid = c.oid)
         as parent_table,
         case when c.relpartbound is not null then
           pg_get_expr(c.relpartbound, c.oid, true)
