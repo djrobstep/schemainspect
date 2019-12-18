@@ -97,7 +97,7 @@ jobs:
   build-pg9:
     working_directory: ~/circleci
     docker:
-      - image: circleci/python:3.7.3
+      - image: circleci/python:3.8.0
       - image: circleci/postgres:9
         environment:
           POSTGRES_USER: circleci
@@ -117,13 +117,12 @@ jobs:
       - run:
           name: Install poetry
           command: |
-            sudo pip3 install poetry
+            sudo pip3 install poetry>=1.0.0
             poetry config virtualenvs.create false
       - run:
           command: |
             python3 -m venv ~/.venv
             . ~/.venv/bin/activate
-
             poetry install
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
