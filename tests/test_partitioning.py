@@ -50,7 +50,7 @@ CREATE TABLE measurement_y2006 PARTITION OF measurement
 
     assert (
         m2006.create_statement
-        == """create table partition of "public"."measurement" FOR VALUES FROM ('2006-01-01') TO ('2007-01-01');
+        == """create table "public"."measurement_y2006" partition of "public"."measurement" FOR VALUES FROM ('2006-01-01') TO ('2007-01-01');
 """
     )
 

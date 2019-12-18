@@ -14,7 +14,7 @@ from ..misc import quoted_identifier, resource_text
 CREATE_TABLE = """create table {} ({}
 ){}{};
 """
-CREATE_TABLE_SUBCLASS = """create table partition of {} {};
+CREATE_TABLE_SUBCLASS = """create table {} partition of {} {};
 """
 CREATE_FUNCTION_FORMAT = """create or replace function {signature}
 returns {result_string} as
@@ -68,9 +68,7 @@ class InspectedSelectable(BaseInspectedSelectable):
     def create_statement(self):
         n = self.quoted_full_name
         if self.relationtype in ("r", "p"):
-            if (
-                not self.is_partitioning_child_table
-            ):
+            if not self.is_partitioning_child_table:
                 colspec = ",\n".join(
                     "    " + c.creation_clause for c in self.columns.values()
                 )
@@ -92,7 +90,7 @@ class InspectedSelectable(BaseInspectedSelectable):
                 )
             else:
                 create_statement = CREATE_TABLE_SUBCLASS.format(
-                    self.parent_table, self.partition_def
+                    n, self.parent_table, self.partition_def
                 )
         elif self.relationtype == "v":
             create_statement = "create or replace view {} as {}\n".format(
