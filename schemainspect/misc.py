@@ -35,7 +35,7 @@ def quoted_identifier(identifier, schema=None, identity_arguments=None):
     s = '"{}"'.format(identifier.replace('"', '""'))
     if schema:
         s = '"{}".{}'.format(schema.replace('"', '""'), s)
-    if identity_arguments:
+    if identity_arguments is not None:
         s = "{}({})".format(s, identity_arguments)
     return s
 
