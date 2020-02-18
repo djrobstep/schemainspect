@@ -1061,6 +1061,7 @@ class PostgreSQL(DBInspector):
                     is_enum=c.is_enum,
                     enum=get_enum(c.enum_name, c.enum_schema),
                     collation=c.collation,
+                    identity=c.attidentity,
                 )
                 for c in clist
                 if c.position_number
