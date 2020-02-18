@@ -70,6 +70,7 @@ select
     a.attname as attname,
     a.attnotnull as not_null,
     a.atttypid::regtype AS datatype,
+    a.attidentity,
     (SELECT c.collname FROM pg_catalog.pg_collation c, pg_catalog.pg_type t
      WHERE c.oid = a.attcollation AND t.oid = a.atttypid AND a.attcollation <> t.typcollation) AS collation,
     pg_get_expr(ad.adbin, ad.adrelid) as defaultdef,

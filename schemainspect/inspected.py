@@ -50,6 +50,7 @@ class ColumnInfo(AutoRepr):
         enum=None,
         dbtypestr=None,
         collation=None,
+        identity=None,
     ):
         self.name = name or ""
         self.dbtype = dbtype
@@ -60,6 +61,7 @@ class ColumnInfo(AutoRepr):
         self.is_enum = is_enum
         self.enum = enum
         self.collation = collation
+        self.identity = identity
 
     def __eq__(self, other):
         return (
@@ -71,6 +73,7 @@ class ColumnInfo(AutoRepr):
             and self.not_null == other.not_null
             and self.enum == other.enum
             and self.collation == other.collation
+            and self.identity == other.identity
         )
 
     def alter_clauses(self, other):
@@ -81,6 +84,8 @@ class ColumnInfo(AutoRepr):
             clauses.append(self.alter_not_null_clause)
         if self.dbtypestr != other.dbtypestr or self.collation != other.collation:
             clauses.append(self.alter_data_type_clause)
+        if self.identity != other.identity:
+            clauses.append(self.alter_identity_clause(other.identity))
         return clauses
 
     def change_enum_to_string_statement(self, table_name):
@@ -116,6 +121,10 @@ class ColumnInfo(AutoRepr):
     @property
     def creation_clause(self):
         x = "{} {}".format(self.quoted_name, self.dbtypestr)
+        if self.identity:
+            identity_type = "always" if self.identity == 'a' else "by default"
+            x += " generated {} as identity".format(identity_type)
+            return x
         if self.not_null:
             x += " not null"
         if self.default:
@@ -143,6 +152,19 @@ class ColumnInfo(AutoRepr):
             )
         else:
             alter = "alter column {} drop default".format(self.quoted_name)
+        return alter
+
+    def alter_identity_clause(self, other_identity):
+        if self.identity:
+            identity_type = "always" if self.identity == 'a' else "by default"
+            if other_identity:
+                alter = "alter column {} set generated {}".format(self.quoted_name, identity_type)
+            else:
+                alter = "alter column {} add generated {} as identity".format(
+                    self.quoted_name, identity_type
+                )
+        else:
+            alter = "alter column {} drop identity".format(self.quoted_name)
         return alter
 
     @property
