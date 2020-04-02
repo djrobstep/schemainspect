@@ -550,6 +550,8 @@ def test_generated_columns(db):
         ) """
         )
 
+        i = get_inspector(s)
+
         t_key = '"public"."t"'
         assert list(i.tables.keys())[0] == t_key
 
