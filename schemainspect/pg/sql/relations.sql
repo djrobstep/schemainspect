@@ -70,7 +70,10 @@ select
     a.attname as attname,
     a.attnotnull as not_null,
     a.atttypid::regtype AS datatype,
-    a.attidentity,
+    a.attidentity != '' as is_identity,
+    a.attidentity = 'a' as is_identity_always,
+    -- PRE_12 false as is_generated,
+    -- 12_ONLY a.attgenerated != '' as is_generated,
     (SELECT c.collname FROM pg_catalog.pg_collation c, pg_catalog.pg_type t
      WHERE c.oid = a.attcollation AND t.oid = a.atttypid AND a.attcollation <> t.typcollation) AS collation,
     pg_get_expr(ad.adbin, ad.adrelid) as defaultdef,
