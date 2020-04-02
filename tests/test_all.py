@@ -491,12 +491,12 @@ def test_weird_names(db):
 
 
 def test_identity_columns(db):
-    i = get_inspector(s)
+    with S(db) as s:
+        i = get_inspector(s)
 
         if i.pg_version < 10:
             pytest.skip("generated columns not supported in 12")
 
-    with S(db) as s:
         s.execute(
             """create table t(
             a int,
