@@ -539,15 +539,16 @@ def test_identity_columns(db):
 
 def test_generated_columns(db):
     with S(db) as s:
+        i = get_inspector(s)
+
+        if i.pg_version < 12:
+            pytest.skip("generated columns not supported in 12")
+
         s.execute(
             """create table t(
                 c int generated always as (1) stored
         ) """
         )
-        i = get_inspector(s)
-
-        if i.pg_version < 12:
-            pytest.skip("generated columns not supported in 12")
 
         t_key = '"public"."t"'
         assert list(i.tables.keys())[0] == t_key
