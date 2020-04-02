@@ -878,9 +878,18 @@ class PostgreSQL(DBInspector):
             self.COLLATIONS_QUERY = processed(COLLATIONS_QUERY_9)
             self.RLSPOLICIES_QUERY = None
         else:
-            self.ALL_RELATIONS_QUERY = processed(ALL_RELATIONS_QUERY)
+            all_relations_query = ALL_RELATIONS_QUERY
+
+            if pg_version >= 12:
+                replace = "-- 12_ONLY"
+            else:
+                replace = "-- PRE_12"
+
+            all_relations_query = all_relations_query.replace(replace, "")
+            self.ALL_RELATIONS_QUERY = processed(all_relations_query)
             self.COLLATIONS_QUERY = processed(COLLATIONS_QUERY)
             self.RLSPOLICIES_QUERY = processed(RLSPOLICIES_QUERY)
+
         self.INDEXES_QUERY = processed(INDEXES_QUERY)
         self.SEQUENCES_QUERY = processed(SEQUENCES_QUERY)
         self.CONSTRAINTS_QUERY = processed(CONSTRAINTS_QUERY)
@@ -1061,7 +1070,9 @@ class PostgreSQL(DBInspector):
                     is_enum=c.is_enum,
                     enum=get_enum(c.enum_name, c.enum_schema),
                     collation=c.collation,
-                    identity=c.attidentity,
+                    is_identity=c.is_identity,
+                    is_identity_always=c.is_identity_always,
+                    is_generated=c.is_generated,
                 )
                 for c in clist
                 if c.position_number
