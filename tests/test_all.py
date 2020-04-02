@@ -495,7 +495,7 @@ def test_identity_columns(db):
         i = get_inspector(s)
 
         if i.pg_version < 10:
-            pytest.skip("generated columns not supported in 12")
+            pytest.skip("identity columns not supported in 9")
 
         s.execute(
             """create table t(
@@ -547,7 +547,7 @@ def test_generated_columns(db):
         i = get_inspector(s)
 
         if i.pg_version < 12:
-            pytest.skip("generated columns not supported in 12")
+            pytest.skip("generated columns not supported in < 12")
 
         s.execute(
             """create table t(
