@@ -139,6 +139,16 @@ class ColumnInfo(AutoRepr):
         else:
             raise ValueError
 
+    def drop_default_statement(self, table_name):
+        return "alter table {} alter column {} drop default;".format(
+            table_name, self.quoted_name
+        )
+
+    def add_default_statement(self, table_name):
+        return "alter table {} alter column {} set default {};".format(
+            table_name, self.quoted_name, self.default
+        )
+
     def alter_table_statements(self, other, table_name):
         prefix = "alter table {}".format(table_name)
         return ["{} {};".format(prefix, c) for c in self.alter_clauses(other)]
