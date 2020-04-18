@@ -44,8 +44,8 @@ with r1 as (
           pg_proc p
           INNER JOIN pg_namespace n
               ON n.oid=p.pronamespace
-      where
-          p.prokind != 'a'
+      where true
+      -- 11_AND_LATER and p.prokind != 'a'
       -- SKIP_INTERNAL and nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast')
       -- SKIP_INTERNAL and nspname not like 'pg_temp_%' and nspname not like 'pg_toast_temp_%'
     ),

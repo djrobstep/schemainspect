@@ -893,6 +893,8 @@ class PostgreSQL(DBInspector):
         def processed(q):
             if not include_internal:
                 q = q.replace("-- SKIP_INTERNAL", "")
+            if self.pg_version >= 11:
+                q = q.replace("-- 11_AND_LATER", "")
             q = text(q)
             return q
 
