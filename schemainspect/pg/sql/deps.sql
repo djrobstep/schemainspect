@@ -7,6 +7,8 @@ with things1 as (
     pg_get_function_identity_arguments(oid) as identity_arguments,
     'f' as kind
   from pg_proc
+  where
+          pg_proc.prokind != 'a'
   union
   select
     oid,
