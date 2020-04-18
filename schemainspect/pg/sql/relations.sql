@@ -49,7 +49,10 @@ r as (
         end
         as partition_def,
         c.relrowsecurity::boolean as rowsecurity,
-        c.relforcerowsecurity::boolean as forcerowsecurity
+        c.relforcerowsecurity::boolean as forcerowsecurity,
+        c.relpersistence as persistence,
+        c.relpages as page_size_estimate,
+        c.reltuples as row_count_estimate
     from
         pg_catalog.pg_class c
         inner join pg_catalog.pg_namespace n
@@ -86,7 +89,10 @@ select
     r.parent_table,
     r.partition_def,
     r.rowsecurity,
-    r.forcerowsecurity
+    r.forcerowsecurity,
+    r.persistence,
+    r.page_size_estimate,
+    r.row_count_estimate
 FROM
     r
     left join pg_catalog.pg_attribute a

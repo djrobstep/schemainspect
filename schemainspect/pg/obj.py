@@ -11,10 +11,10 @@ from ..inspected import TableRelated
 from ..inspector import DBInspector
 from ..misc import quoted_identifier, resource_text
 
-CREATE_TABLE = """create table {} ({}
+CREATE_TABLE = """create {}table {} ({}
 ){}{};
 """
-CREATE_TABLE_SUBCLASS = """create table {} partition of {} {};
+CREATE_TABLE_SUBCLASS = """create {}table {} partition of {} {};
 """
 CREATE_FUNCTION_FORMAT = """create or replace function {signature}
 returns {result_string} as
@@ -65,9 +65,23 @@ class InspectedSelectable(BaseInspectedSelectable):
         return self.has_compatible_columns(other)
 
     @property
+    def persistence_modifier(self):
+        if self.persistence == "t":
+            return "temporary "
+        elif self.persistence == "u":
+            return "unlogged "
+        else:
+            return ""
+
+    @property
+    def is_unlogged(self):
+        return self.persistence == "u"
+
+    @property
     def create_statement(self):
         n = self.quoted_full_name
         if self.relationtype in ("r", "p"):
+
             if not self.is_partitioning_child_table:
                 colspec = ",\n".join(
                     "    " + c.creation_clause for c in self.columns.values()
@@ -86,11 +100,15 @@ class InspectedSelectable(BaseInspectedSelectable):
                     inherits_clause = ""
 
                 create_statement = CREATE_TABLE.format(
-                    n, colspec, partition_key, inherits_clause
+                    self.persistence_modifier,
+                    n,
+                    colspec,
+                    partition_key,
+                    inherits_clause,
                 )
             else:
                 create_statement = CREATE_TABLE_SUBCLASS.format(
-                    n, self.parent_table, self.partition_def
+                    self.persistence_modifier, n, self.parent_table, self.partition_def
                 )
         elif self.relationtype == "v":
             create_statement = "create or replace view {} as {}\n".format(
@@ -209,6 +227,11 @@ class InspectedSelectable(BaseInspectedSelectable):
     @property
     def alter_rls_statement(self):
         return self.alter_table_statement(self.alter_rls_clause)
+
+    @property
+    def alter_unlogged_statement(self):
+        keyword = "unlogged" if self.is_unlogged else "logged"
+        return self.alter_table_statement("set {}".format(keyword))
 
 
 class InspectedFunction(InspectedSelectable):
@@ -1089,6 +1112,7 @@ class PostgreSQL(DBInspector):
                 partition_def=f.partition_def,
                 rowsecurity=f.rowsecurity,
                 forcerowsecurity=f.forcerowsecurity,
+                persistence=f.persistence,
             )
             RELATIONTYPES = {
                 "r": "tables",

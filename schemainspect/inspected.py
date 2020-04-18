@@ -109,9 +109,6 @@ class ColumnInfo(AutoRepr):
         if not_null_change and not self.not_null:
             clauses.append(self.alter_not_null_clause)
 
-        # if self.default != other.default and self.default:
-        #    clauses.append(self.alter_default_clause)
-
         if self.dbtypestr != other.dbtypestr or self.collation != other.collation:
             clauses.append(self.alter_data_type_clause)
 
@@ -244,6 +241,7 @@ class InspectedSelectable(Inspected):
         partition_def=None,
         rowsecurity=False,
         forcerowsecurity=False,
+        persistence=None,
     ):
         self.name = name
         self.schema = schema
@@ -262,6 +260,7 @@ class InspectedSelectable(Inspected):
         self.partition_def = partition_def
         self.rowsecurity = rowsecurity
         self.forcerowsecurity = forcerowsecurity
+        self.persistence = persistence
 
     def __eq__(self, other):
         equalities = (
@@ -275,5 +274,6 @@ class InspectedSelectable(Inspected):
             self.parent_table == other.parent_table,
             self.partition_def == other.partition_def,
             self.rowsecurity == other.rowsecurity,
+            self.persistence == other.persistence,
         )
         return all(equalities)
