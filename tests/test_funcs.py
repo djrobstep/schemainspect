@@ -25,13 +25,17 @@ $$;
 def test_kinds(db):
     with S(db) as s:
         s.execute(FUNC)
-        s.execute(PROC)
+
         i = get_inspector(s)
         f = i.functions['"public"."ordinary_f"(t text)']
 
         assert f.definition == "select\r\n1"
         assert f.kind == "f"
 
+        if i.pg_version < 11:
+            return
+        s.execute(PROC)
+        i = get_inspector(s)
         p = i.functions['"public"."proc"(a integer, b integer)']
 
         assert p.definition == "\nselect a, b;\n"
