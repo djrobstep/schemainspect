@@ -39,7 +39,9 @@ with r1 as (
             'VOLATILE'
           else
             null
-        end as volatility
+        end as volatility,
+        -- 11_AND_LATER p.prokind as kind
+        -- 10_AND_EARLIER case when p.proisagg then 'a' else 'f' end as kind
       from
           pg_proc p
           INNER JOIN pg_namespace n
@@ -65,6 +67,7 @@ with r1 as (
             pp.strictness,
             pp.security_type,
             pp.oid,
+            pp.kind,
             e.objid as extension_oid
         from r1
         left outer join pgproc pp
@@ -95,6 +98,7 @@ with r1 as (
             r.strictness as strictness,
             r.security_type as security_type,
             r.volatility as volatility,
+            r.kind as kind,
             r.oid as oid,
             r.extension_oid as extension_oid,
             pg_get_function_result(oid) as result_string,

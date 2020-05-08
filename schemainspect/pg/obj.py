@@ -251,6 +251,7 @@ class InspectedFunction(InspectedSelectable):
         full_definition,
         comment,
         returntype,
+        kind,
     ):
         self.identity_arguments = identity_arguments
         self.result_string = result_string
@@ -260,6 +261,7 @@ class InspectedFunction(InspectedSelectable):
         self.security_type = security_type
         self.full_definition = full_definition
         self.returntype = returntype
+        self.kind = kind
 
         super(InspectedFunction, self).__init__(
             name=name,
@@ -295,8 +297,13 @@ class InspectedFunction(InspectedSelectable):
         """
 
     @property
+    def thing(self):
+        kinds = dict(f="function", p="procedure", a="aggregate", w="window function")
+        return kinds[self.kind]
+
+    @property
     def drop_statement(self):
-        return "drop function if exists {};".format(self.signature)
+        return "drop {} if exists {};".format(self.thing, self.signature)
 
     def __eq__(self, other):
         return (
@@ -307,6 +314,7 @@ class InspectedFunction(InspectedSelectable):
             and self.volatility == other.volatility
             and self.strictness == other.strictness
             and self.security_type == other.security_type
+            and self.kind == other.kind
         )
 
 
@@ -324,6 +332,9 @@ class InspectedTrigger(Inspected):
             self.full_definition,
         ) = (name, schema, table_name, proc_schema, proc_name, enabled, full_definition)
 
+        self.dependent_on = [self.quoted_full_selectable_name]
+        self.dependents = []
+
     @property
     def signature(self):
         return self.quoted_full_name
@@ -334,6 +345,12 @@ class InspectedTrigger(Inspected):
             quoted_identifier(self.schema),
             quoted_identifier(self.table_name),
             quoted_identifier(self.name),
+        )
+
+    @property
+    def quoted_full_selectable_name(self):
+        return "{}.{}".format(
+            quoted_identifier(self.schema), quoted_identifier(self.table_name)
         )
 
     @property
@@ -895,6 +912,8 @@ class PostgreSQL(DBInspector):
                 q = q.replace("-- SKIP_INTERNAL", "")
             if self.pg_version >= 11:
                 q = q.replace("-- 11_AND_LATER", "")
+            else:
+                q = q.replace("-- 10_AND_EARLIER", "")
             q = text(q)
             return q
 
@@ -937,14 +956,16 @@ class PostgreSQL(DBInspector):
         self.selectables = od()
         self.selectables.update(self.relations)
         self.selectables.update(self.functions)
-        self.load_deps()
-        self.load_deps_all()
+
         self.load_privileges()
         self.load_triggers()
         self.load_collations()
         self.load_rlspolicies()
         self.load_types()
         self.load_domains()
+
+        self.load_deps()
+        self.load_deps_all()
 
     def load_schemas(self):
         q = self.c.execute(self.SCHEMAS_QUERY)
@@ -1018,9 +1039,20 @@ class PostgreSQL(DBInspector):
             self.selectables[x_dependent_on].dependents.append(x)
             self.selectables[x_dependent_on].dependents.sort()
 
+        for k, t in self.triggers.items():
+            for dep_name in t.dependent_on:
+                dependency = self.selectables[dep_name]
+                dependency.dependents.append(k)
+
     def load_deps_all(self):
+        def get_dep_by_sig(sig):
+            try:
+                return self.selectables[sig]
+            except KeyError:
+                return self.triggers[sig]
+
         def get_related_for_item(item, att):
-            related = [self.selectables[_] for _ in getattr(item, att)]
+            related = [get_dep_by_sig(_) for _ in getattr(item, att)]
             return [item.signature] + [
                 _ for d in related for _ in get_related_for_item(d, att)
             ]
@@ -1251,6 +1283,7 @@ class PostgreSQL(DBInspector):
                 full_definition=f.full_definition,
                 comment=f.comment,
                 returntype=f.returntype,
+                kind=f.kind,
             )
 
             identity_arguments = "({})".format(s.identity_arguments)
