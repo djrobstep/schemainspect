@@ -7,7 +7,7 @@ schemainspect_test_role = "schemainspect_test_role"
 
 def create_role(s, rolename):
     role = s.execute(
-        f"""
+        """
 SELECT 1 FROM pg_roles WHERE rolname=:rolename
     """,
         dict(rolename=rolename),
