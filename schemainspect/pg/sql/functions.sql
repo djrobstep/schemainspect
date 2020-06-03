@@ -40,6 +40,13 @@ with r1 as (
           else
             null
         end as volatility,
+        p.proargtypes,
+        p.proallargtypes,
+        p.proargnames,
+        p.proargdefaults,
+        p.proargmodes,
+        p.proowner,
+        COALESCE(p.proallargtypes, p.proargtypes::oid[]) as procombinedargtypes,
         -- 11_AND_LATER p.prokind as kind
         -- 10_AND_EARLIER case when p.proisagg then 'a' else 'f' end as kind
       from
@@ -77,6 +84,44 @@ with r1 as (
           on pp.oid = e.objid
         -- SKIP_INTERNAL where e.objid is null
     ),
+unnested as (
+    select
+        p.oid as p_oid,
+        --schema,
+        --name,
+        pname as parameter_name,
+        --pdatatype,
+        --pargtype as data_type,
+        pnum as position_number,
+        CASE
+            WHEN pargmode IS NULL THEN null
+            WHEN pargmode = 'i'::"char" THEN 'IN'::text
+            WHEN pargmode = 'o'::"char" THEN 'OUT'::text
+            WHEN pargmode = 'b'::"char" THEN 'INOUT'::text
+            WHEN pargmode = 'v'::"char" THEN 'IN'::text
+            WHEN pargmode = 't'::"char" THEN 'OUT'::text
+            ELSE NULL::text
+            END::information_schema.character_data AS parameter_mode,
+      CASE
+        WHEN t.typelem <> 0::oid AND t.typlen = '-1'::integer THEN 'ARRAY'::text
+        else format_type(t.oid, NULL::integer)
+
+    END::information_schema.character_data AS data_type,
+    CASE
+            WHEN pg_has_role(p.proowner, 'USAGE'::text) THEN pg_get_function_arg_default(p.oid, pnum::int)
+            ELSE NULL::text
+        END::varchar AS parameter_default
+    from pgproc p
+    left join lateral
+    unnest(
+        p.proargnames,
+        p.proallargtypes,
+        p.procombinedargtypes,
+        p.proargmodes)
+    WITH ORDINALITY AS uu(pname, pdatatype, pargtype, pargmode, pnum) ON TRUE
+    left join pg_type t
+        on t.oid = uu.pargtype
+),
     pre as (
         SELECT
             r.schema as schema,
@@ -91,9 +136,9 @@ with r1 as (
             p.data_type as data_type,
             p.parameter_mode as parameter_mode,
             p.parameter_default as parameter_default,
-            p.ordinal_position as position_number,
+            p.position_number as position_number,
             r.definition as definition,
-            pg_get_functiondef(oid) as full_definition,
+            pg_get_functiondef(r.oid) as full_definition,
             r.external_language as language,
             r.strictness as strictness,
             r.security_type as security_type,
@@ -101,14 +146,18 @@ with r1 as (
             r.kind as kind,
             r.oid as oid,
             r.extension_oid as extension_oid,
-            pg_get_function_result(oid) as result_string,
-            pg_get_function_identity_arguments(oid) as identity_arguments,
+            pg_get_function_result(r.oid) as result_string,
+            pg_get_function_identity_arguments(r.oid) as identity_arguments,
             pg_catalog.obj_description(r.oid) as comment
         FROM r
-            LEFT JOIN information_schema.parameters p ON
-                r.specific_name=p.specific_name
+        left join unnested p
+          on r.oid = p.p_oid
+        --    LEFT JOIN information_schema.parameters p ON
+        --        r.specific_name=p.specific_name
+
+
         order by
-            name, parameter_mode, ordinal_position, parameter_name
+            name, parameter_mode, position_number, parameter_name
     )
 select
 *
