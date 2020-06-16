@@ -43,3 +43,5 @@ scratch
 poetry.lock
 .DS_Store
 pip-wheel-metadata
+
+tests/test_local_*

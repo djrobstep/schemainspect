@@ -1041,7 +1041,10 @@ class PostgreSQL(DBInspector):
 
         for k, t in self.triggers.items():
             for dep_name in t.dependent_on:
-                dependency = self.selectables[dep_name]
+                try:
+                    dependency = self.selectables[dep_name]
+                except KeyError:
+                    continue
                 dependency.dependents.append(k)
 
     def load_deps_all(self):
