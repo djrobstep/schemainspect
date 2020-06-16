@@ -861,7 +861,7 @@ class InspectedRowPolicy(Inspected, TableRelated):
     @property
     def create_statement(self):
         if self.qual:
-            qual_clause = "\nusing {}".format(self.qual)
+            qual_clause = "\nusing ({})".format(self.qual)
         else:
             qual_clause = ""
 
