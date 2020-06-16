@@ -96,7 +96,7 @@ on "public"."accounts"
 as permissive
 for all
 to schemainspect_test_role
-using (manager = (CURRENT_USER)::text);
+using ((manager = (CURRENT_USER)::text));
 """
         )
 
