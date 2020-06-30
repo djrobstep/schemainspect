@@ -36,20 +36,4 @@ def test_triggers(db):
         s.execute(BASE)
         i = get_inspector(s)
 
-        print(list(i.triggers))
-
-        t = i.triggers['"public"."view_on_table"."trigger_on_view"']
-
-        print(dir(t))
-        print(t.table_name)
-        # f = i.functions['"public"."ordinary_f"(t text)']
-
-        # assert f.definition == "select\r\n1"
-        # assert f.kind == 'f'
-
-        # p = i.functions['"public"."proc"(a integer, b integer)']
-
-        # assert p.definition == "\nselect a, b;\n"
-        # assert p.kind == 'p'
-
-        # assert p.drop_statement == 'drop procedure if exists "public"."proc"(a integer, b integer);'
+        i.triggers['"public"."view_on_table"."trigger_on_view"']

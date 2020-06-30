@@ -110,7 +110,10 @@ class ColumnInfo(AutoRepr):
             clauses.append(self.alter_not_null_clause)
 
         if self.dbtypestr != other.dbtypestr or self.collation != other.collation:
-            clauses.append(self.alter_data_type_clause)
+            if self.is_enum and other.is_enum:
+                clauses.append(self.alter_enum_type_clause)
+            else:
+                clauses.append(self.alter_data_type_clause)
 
         return clauses
 
@@ -132,7 +135,18 @@ class ColumnInfo(AutoRepr):
                 self.quoted_name,
                 self.dbtypestr,
             )
+        else:
+            raise ValueError
 
+    def change_enum_statement(self, table_name):
+        if self.is_enum:
+            return "alter table {} alter column {} type {} using {}::text::{};".format(
+                table_name,
+                self.name,
+                self.enum.quoted_full_name,
+                self.name,
+                self.enum.quoted_full_name,
+            )
         else:
             raise ValueError
 
@@ -217,6 +231,16 @@ class ColumnInfo(AutoRepr):
     @property
     def alter_data_type_clause(self):
         return "alter column {} set data type {}{} using {}::{}".format(
+            self.quoted_name,
+            self.dbtypestr,
+            self.collation_subclause,
+            self.quoted_name,
+            self.dbtypestr,
+        )
+
+    @property
+    def alter_enum_type_clause(self):
+        return "alter column {} set data type {}{} using {}::text::{}".format(
             self.quoted_name,
             self.dbtypestr,
             self.collation_subclause,

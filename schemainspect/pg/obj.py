@@ -450,9 +450,11 @@ class InspectedIndex(Inspected, TableRelated):
 
 
 class InspectedSequence(Inspected):
-    def __init__(self, name, schema):
+    def __init__(self, name, schema, table_name=None, column_name=None):
         self.name = name
         self.schema = schema
+        self.table_name = table_name
+        self.column_name = column_name
 
     @property
     def drop_statement(self):
@@ -462,8 +464,44 @@ class InspectedSequence(Inspected):
     def create_statement(self):
         return "create sequence {};".format(self.quoted_full_name)
 
+    @property
+    def create_statement_with_ownership(self):
+        t_col_name = self.quoted_table_and_column_name
+
+        if self.table_name and self.column_name:
+            return "create sequence {} owned by {};".format(
+                self.quoted_full_name, t_col_name
+            )
+        else:
+            return "create sequence {};".format(self.quoted_full_name)
+
+    @property
+    def alter_ownership_statement(self):
+        t_col_name = self.quoted_table_and_column_name
+
+        if t_col_name is not None:
+            return "alter sequence {} owned by {};".format(
+                self.quoted_full_name, t_col_name
+            )
+        else:
+            return "alter sequence {} owned by none;".format(self.quoted_full_name)
+
+    @property
+    def quoted_full_table_name(self):
+        if self.table_name is not None:
+            return quoted_identifier(self.table_name, self.schema)
+
+    @property
+    def quoted_table_and_column_name(self):
+        if self.column_name is not None and self.table_name is not None:
+            return quoted_identifier(self.column_name, self.table_name)
+
     def __eq__(self, other):
-        equalities = self.name == other.name, self.schema == other.schema
+        equalities = (
+            self.name == other.name,
+            self.schema == other.schema,
+            self.quoted_table_and_column_name == other.quoted_table_and_column_name,
+        )
         return all(equalities)
 
 
@@ -503,10 +541,11 @@ class InspectedCollation(Inspected):
 
 
 class InspectedEnum(Inspected):
-    def __init__(self, name, schema, elements):
+    def __init__(self, name, schema, elements, pg_version=None):
         self.name = name
         self.schema = schema
         self.elements = elements
+        self.pg_version = pg_version
 
     @property
     def drop_statement(self):
@@ -523,6 +562,18 @@ class InspectedEnum(Inspected):
         quoted = ["'{}'".format(e) for e in self.elements]
         return ", ".join(quoted)
 
+    def alter_rename_statement(self, new_name):
+        name = new_name
+
+        return "alter type {} rename to {};".format(
+            self.quoted_full_name, quoted_identifier(name)
+        )
+
+    def drop_statement_with_rename(self, new_name):
+        name = new_name
+        new_name = quoted_identifier(name, self.schema)
+        return "drop type {};".format(new_name)
+
     def change_statements(self, new):
         if not self.can_be_changed_to(new):
             raise ValueError
@@ -534,19 +585,23 @@ class InspectedEnum(Inspected):
         for c in new:
             if c not in old:
                 if not previous:
-                    s = "alter type {} add value '{}' before '{}'".format(
+                    s = "alter type {} add value '{}' before '{}';".format(
                         self.quoted_full_name, c, old[0]
                     )
                 else:
-                    s = "alter type {} add value '{}' after '{}'".format(
+                    s = "alter type {} add value '{}' after '{}';".format(
                         self.quoted_full_name, c, previous
                     )
                 statements.append(s)
             previous = c
         return statements
 
-    def can_be_changed_to(self, new):
+    def can_be_changed_to(self, new, when_within_transaction=False):
         old = self.elements
+
+        if when_within_transaction and self.pg_version and self.pg_version < 12:
+            return False
+
         # new must already have the existing items from old, in the same order
         return [e for e in new.elements if e in old] == old
 
@@ -1027,6 +1082,7 @@ class PostgreSQL(DBInspector):
 
     def load_deps(self):
         q = self.c.execute(self.DEPS_QUERY)
+
         for dep in q:
             x = quoted_identifier(dep.name, dep.schema)
             x_dependent_on = quoted_identifier(
@@ -1102,10 +1158,17 @@ class PostgreSQL(DBInspector):
 
         q = self.c.execute(self.ENUMS_QUERY)
         enumlist = [
-            InspectedEnum(name=i.name, schema=i.schema, elements=i.elements) for i in q
+            InspectedEnum(
+                name=i.name,
+                schema=i.schema,
+                elements=i.elements,
+                pg_version=self.pg_version,
+            )
+            for i in q
         ]
         self.enums = od((i.quoted_full_name, i) for i in enumlist)
         q = self.c.execute(self.ALL_RELATIONS_QUERY)
+
         for _, g in groupby(q, lambda x: (x.relationtype, x.schema, x.name)):
             clist = list(g)
             f = clist[0]
@@ -1186,7 +1249,16 @@ class PostgreSQL(DBInspector):
         ]
         self.indexes = od((i.quoted_full_name, i) for i in indexlist)
         q = self.c.execute(self.SEQUENCES_QUERY)
-        sequencelist = [InspectedSequence(name=i.name, schema=i.schema) for i in q]
+
+        sequencelist = [
+            InspectedSequence(
+                name=i.name,
+                schema=i.schema,
+                table_name=i.table_name,
+                column_name=i.column_name,
+            )
+            for i in q
+        ]
         self.sequences = od((i.quoted_full_name, i) for i in sequencelist)
         q = self.c.execute(self.CONSTRAINTS_QUERY)
 

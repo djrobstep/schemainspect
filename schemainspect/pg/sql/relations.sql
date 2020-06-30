@@ -10,7 +10,7 @@ with extension_oids as (
   SELECT
     t.oid as enum_oid,
     n.nspname as "schema",
-    pg_catalog.format_type(t.oid, NULL) AS "name"
+    t.typname as name
   FROM pg_catalog.pg_type t
        LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
        left outer join extension_oids e
@@ -20,7 +20,6 @@ with extension_oids as (
     and e.objid is null
     -- SKIP_INTERNAL and n.nspname not in ('pg_catalog', 'information_schema', 'pg_toast')
     -- SKIP_INTERNAL and n.nspname not like 'pg_temp_%' and n.nspname not like 'pg_toast_temp_%'
-    AND pg_catalog.pg_type_is_visible(t.oid)
   ORDER BY 1, 2
 ),
 r as (

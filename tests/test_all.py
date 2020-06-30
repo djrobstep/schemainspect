@@ -200,9 +200,9 @@ def test_postgres_objects():
     i2.elements = ["a0", "a", "a1", "b", "c", "d"]
     assert i.can_be_changed_to(i2)
     assert i.change_statements(i2) == [
-        "alter type \"schema\".\"name\" add value 'a0' before 'a'",
-        "alter type \"schema\".\"name\" add value 'a1' after 'a'",
-        "alter type \"schema\".\"name\" add value 'd' after 'c'",
+        "alter type \"schema\".\"name\" add value 'a0' before 'a';",
+        "alter type \"schema\".\"name\" add value 'a1' after 'a';",
+        "alter type \"schema\".\"name\" add value 'd' after 'c';",
     ]
     c = InspectedConstraint(
         constraint_type="PRIMARY KEY",
@@ -573,6 +573,41 @@ def test_generated_columns(db):
         EXPECTED = '"c" integer generated always as (1) stored'
 
         assert c.creation_clause == EXPECTED
+
+
+def test_sequences(db):
+    with S(db) as s:
+        s.execute(
+            """
+        create table t(id serial);
+        """
+        )
+
+        s.execute(
+            """
+        CREATE SEQUENCE serial START 101;
+        """
+        )
+
+        s.execute(
+            """
+        create table t2(id integer generated always as identity);
+        """
+        )
+
+        i = get_inspector(s)
+
+        seqs = list(i.sequences)
+
+        assert seqs == ['"public"."serial"', '"public"."t_id_seq"']
+
+        unowned = i.sequences['"public"."serial"']
+        assert unowned.table_name is None
+
+        owned = i.sequences['"public"."t_id_seq"']
+        assert owned.table_name == "t"
+        assert owned.quoted_full_table_name == '"public"."t"'
+        assert owned.quoted_table_and_column_name == '"t"."id"'
 
 
 def test_postgres_inspect(db):

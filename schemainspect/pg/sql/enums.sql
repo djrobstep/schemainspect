@@ -6,8 +6,9 @@ with extension_oids as (
   WHERE
       d.refclassid = 'pg_extension'::regclass
 )
-SELECT n.nspname as "schema",
-  substr(pg_catalog.format_type(t.oid, NULL), strpos(pg_catalog.format_type(t.oid, NULL), '.') + 1) AS "name",
+SELECT
+  n.nspname as "schema",
+  t.typname as "name",
   ARRAY(
      SELECT e.enumlabel
       FROM pg_catalog.pg_enum e
