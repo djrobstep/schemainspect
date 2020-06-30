@@ -577,6 +577,11 @@ def test_generated_columns(db):
 
 def test_sequences(db):
     with S(db) as s:
+        i = get_inspector(s)
+
+        if i.pg_version < 10:
+            pytest.skip("identity columns not supported in 9")
+
         s.execute(
             """
         create table t(id serial);
