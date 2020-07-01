@@ -8,6 +8,7 @@ with things1 as (
     'f' as kind
   from pg_proc
   -- 11_AND_LATER where pg_proc.prokind != 'a'
+  -- 10_AND_EARLIER where pg_proc.proisagg is False
   union
   select
     oid,
