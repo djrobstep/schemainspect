@@ -612,7 +612,7 @@ def test_sequences(db):
         owned = i.sequences['"public"."t_id_seq"']
         assert owned.table_name == "t"
         assert owned.quoted_full_table_name == '"public"."t"'
-        assert owned.quoted_table_and_column_name == '"t"."id"'
+        assert owned.quoted_table_and_column_name == '"public"."t"."id"'
 
 
 def test_postgres_inspect(db):

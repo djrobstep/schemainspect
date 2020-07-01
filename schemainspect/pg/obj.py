@@ -494,7 +494,9 @@ class InspectedSequence(Inspected):
     @property
     def quoted_table_and_column_name(self):
         if self.column_name is not None and self.table_name is not None:
-            return quoted_identifier(self.column_name, self.table_name)
+            return (
+                self.quoted_full_table_name + "." + quoted_identifier(self.column_name)
+            )
 
     def __eq__(self, other):
         equalities = (
