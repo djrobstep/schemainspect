@@ -18,6 +18,8 @@ CREATE TABLE it.foo(a bigserial, b jsonb);
 
 CREATE UNIQUE INDEX fun_partial_index ON it.foo (it.key_func(b))
  WHERE it.part_func(b);
+
+CREATE INDEX brin_index ON it.foo USING BRIN (a);
 """
 
 
