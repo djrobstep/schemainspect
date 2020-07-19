@@ -396,6 +396,7 @@ class InspectedIndex(Inspected, TableRelated):
         key_collations,
         key_expressions,
         partial_predicate,
+        algorithm,
         definition=None,
         constraint=None,
     ):
@@ -414,6 +415,7 @@ class InspectedIndex(Inspected, TableRelated):
         self.key_collations = key_collations
         self.key_expressions = key_expressions
         self.partial_predicate = partial_predicate
+        self.algorithm = algorithm
         self.constraint = constraint
 
     @property
@@ -444,6 +446,7 @@ class InspectedIndex(Inspected, TableRelated):
             self.key_collations == other.key_collations,
             self.key_expressions == other.key_expressions,
             self.partial_predicate == other.partial_predicate,
+            self.algorithm == other.algorithm
             # self.constraint == other.constraint
         )
         return all(equalities)
@@ -1246,6 +1249,7 @@ class PostgreSQL(DBInspector):
                 key_collations=i.key_collations,
                 key_expressions=i.key_expressions,
                 partial_predicate=i.partial_predicate,
+                algorithm=i.algorithm
             )
             for i in q
         ]

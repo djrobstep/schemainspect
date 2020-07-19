@@ -16,10 +16,12 @@ with extension_oids as (
        indisprimary is_pk, indisexclusion is_exclusion, indimmediate is_immediate,
        indisclustered is_clustered, indcollation key_collations,
        pg_get_expr(indexprs, indrelid) key_expressions,
-       pg_get_expr(indpred, indrelid) partial_predicate
+       pg_get_expr(indpred, indrelid) partial_predicate,
+       amname algorithm
   FROM pg_index x
     JOIN pg_class c ON c.oid = x.indrelid
     JOIN pg_class i ON i.oid = x.indexrelid
+    JOIN pg_am am ON i.relam = am.oid
     LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
     left join extension_oids e
       on c.oid = e.objid or i.oid = e.objid
