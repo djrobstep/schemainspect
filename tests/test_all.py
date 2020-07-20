@@ -148,21 +148,22 @@ def test_postgres_objects():
     ex2.version = "2.1"
     assert ex != ex2
     ix = InspectedIndex(
-        "name",
-        "schema",
-        "table",
-        "y",
-        "0",
-        "1",
-        False,
-        True,
-        False,
-        True,
-        False,
-        "0",
-        None,
-        None,
-        "create index name on t(x)",
+        name="name",
+        schema="schema",
+        table_name="table",
+        key_columns="y",
+        key_options="0",
+        num_att="1",
+        is_unique=False,
+        is_pk=True,
+        is_exclusion=False,
+        is_immediate=True,
+        is_clustered=False,
+        key_collations="0",
+        key_expressions=None,
+        partial_predicate=None,
+        algorithm="BRIN",
+        definition="create index name on t(x)",
     )
     assert ix.drop_statement == 'drop index if exists "schema"."name";'
     assert ix.create_statement == "create index name on t(x);"
