@@ -551,6 +551,8 @@ class InspectedEnum(Inspected):
         self.schema = schema
         self.elements = elements
         self.pg_version = pg_version
+        self.dependents = []
+        self.dependent_on = []
 
     @property
     def drop_statement(self):
@@ -1088,8 +1090,10 @@ class PostgreSQL(DBInspector):
     def load_deps(self):
         q = self.c.execute(self.DEPS_QUERY)
 
-        for dep in q:
-            x = quoted_identifier(dep.name, dep.schema)
+        self.deps = list(q)
+
+        for dep in self.deps:
+            x = quoted_identifier(dep.name, dep.schema, dep.identity_arguments)
             x_dependent_on = quoted_identifier(
                 dep.name_dependent_on,
                 dep.schema_dependent_on,
@@ -1108,15 +1112,27 @@ class PostgreSQL(DBInspector):
                     continue
                 dependency.dependents.append(k)
 
-    def load_deps_all(self):
-        def get_dep_by_sig(sig):
-            try:
-                return self.selectables[sig]
-            except KeyError:
-                return self.triggers[sig]
+        for k, r in self.relations.items():
+            for kc, c in r.columns.items():
+                if c.is_enum:
+                    e_sig = c.enum.signature
 
+                    if e_sig in self.enums:
+                        r.dependent_on.append(e_sig)
+                        c.enum.dependents.append(k)
+
+    def get_dependency_by_signature(self, signature):
+        things = [self.selectables, self.enums, self.triggers]
+
+        for thing in things:
+            try:
+                return thing[signature]
+            except KeyError:
+                continue
+
+    def load_deps_all(self):
         def get_related_for_item(item, att):
-            related = [get_dep_by_sig(_) for _ in getattr(item, att)]
+            related = [self.get_dependency_by_signature(_) for _ in getattr(item, att)]
             return [item.signature] + [
                 _ for d in related for _ in get_related_for_item(d, att)
             ]
@@ -1249,7 +1265,7 @@ class PostgreSQL(DBInspector):
                 key_collations=i.key_collations,
                 key_expressions=i.key_expressions,
                 partial_predicate=i.partial_predicate,
-                algorithm=i.algorithm
+                algorithm=i.algorithm,
             )
             for i in q
         ]

@@ -363,9 +363,9 @@ def asserts_pg(i):
 
     for k, r in i.relations.items():
         for dependent in r.dependents:
-            assert k in i.relations[dependent].dependent_on
+            assert k in i.get_dependency_by_signature(dependent).dependent_on
         for dependency in r.dependent_on:
-            assert k in i.relations[dependency].dependents
+            assert k in i.get_dependency_by_signature(dependency).dependents
 
     # materialized views
     mv_films = n("mv_films")

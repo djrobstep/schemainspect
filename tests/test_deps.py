@@ -72,6 +72,31 @@ create or replace view vvv as select similarity('aaa', 'aaabc')::decimal as x, 1
         assert t1.can_replace(t2) is False
 
 
+def test_enum_deps(db):
+    ENUM_DEP_SAMPLE = """\
+create type e as enum('a', 'b', 'c');
+
+create table t(id integer primary key, category e);
+
+create view v as select * from t;
+
+"""
+    with S(db) as s:
+        s.execute(ENUM_DEP_SAMPLE)
+
+        i = get_inspector(s)
+
+        e = '"public"."e"'
+        t = '"public"."t"'
+        v = '"public"."v"'
+
+        assert e in i.enums
+
+        assert i.enums[e].dependents == [t, v]
+        assert e in i.selectables[t].dependent_on
+        assert e in i.selectables[v].dependent_on
+
+
 def test_relationships(db):
     # commented-out dependencies are the dependencies that aren't tracked directly by postgres
     with S(db) as s:

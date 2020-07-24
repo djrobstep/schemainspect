@@ -25,6 +25,9 @@ isort = "*"
 migra = "*"
 black = { version = ">=19.10b0", python=">=3.6" }
 
+[tool.poetry.scripts]
+schemainspect = 'schemainspect:do_command'
+
 [tool.isort]
 multi_line_output = 3
 include_trailing_comma = true

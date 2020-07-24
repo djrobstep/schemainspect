@@ -53,10 +53,12 @@ combined as (
     t.schema,
     t.name,
     t.identity_arguments,
+    t.kind,
     things_dependent_on.objid as objid_dependent_on,
     things_dependent_on.schema as schema_dependent_on,
     things_dependent_on.name as name_dependent_on,
-    things_dependent_on.identity_arguments as identity_arguments_dependent_on
+    things_dependent_on.identity_arguments as identity_arguments_dependent_on,
+    things_dependent_on.kind as kind_dependent_on
   FROM
       pg_depend d
       inner join things things_dependent_on
@@ -68,6 +70,10 @@ combined as (
         on rw.ev_class = t.objid
   where
     d.deptype in ('n')
-    and rw.rulename = '_RETURN'
+    and
+    rw.rulename = '_RETURN'
 )
-select * from combined;
+select * from combined
+order by
+schema, name, identity_arguments, kind_dependent_on,
+schema_dependent_on, name_dependent_on, identity_arguments_dependent_on
