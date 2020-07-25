@@ -141,7 +141,7 @@ def test_postgres_objects():
     )
     assert (
         ex.update_statement
-        == 'alter extension "schema"."name" update to version \'1.2\';'
+        == 'alter extension "name" update to \'1.2\';'
     )
     ex2 = deepcopy(ex)
     assert ex == ex2
