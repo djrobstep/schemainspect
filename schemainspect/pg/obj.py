@@ -776,9 +776,12 @@ class InspectedExtension(Inspected):
 
     @property
     def update_statement(self):
-        return "alter extension {} update to version '{}';".format(
-            self.quoted_full_name, self.version
+        return "alter extension {} update to '{}';".format(
+            self.quoted_name, self.version
         )
+
+    def alter_statements(self, other=None):
+        return [self.update_statement]
 
     def __eq__(self, other):
         equalities = (
