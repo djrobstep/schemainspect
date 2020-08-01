@@ -90,26 +90,37 @@ class ColumnInfo(AutoRepr):
 
         clauses = []
 
-        not_null_change = self.not_null != other.not_null
+        notnull_changed = self.not_null != other.not_null
+        notnull_added = notnull_changed and self.not_null
+        notnull_dropped = notnull_changed and not self.not_null
 
-        if not_null_change and self.not_null:
-            clauses.append(self.alter_not_null_clause)
+        default_changed = self.default != other.default
 
-        if self.default != other.default and not self.default:
-            clauses.append(self.alter_default_clause)
+        # default_added = default_changed and self.default
+        # default_dropped = default_changed and not self.default
 
-        if (
+        identity_changed = (
             self.is_identity != other.is_identity
             or self.is_identity_always != other.is_identity_always
-        ):
-            clauses.append(self.alter_identity_clause(other))
-        elif self.default != other.default and self.default:
+        )
+
+        type_or_collation_changed = (
+            self.dbtypestr != other.dbtypestr or self.collation != other.collation
+        )
+
+        if default_changed:
             clauses.append(self.alter_default_clause)
 
-        if not_null_change and not self.not_null:
+        if notnull_added:
             clauses.append(self.alter_not_null_clause)
 
-        if self.dbtypestr != other.dbtypestr or self.collation != other.collation:
+        if identity_changed:
+            clauses.append(self.alter_identity_clause(other))
+
+        if notnull_dropped:
+            clauses.append(self.alter_not_null_clause)
+
+        if type_or_collation_changed:
             if self.is_enum and other.is_enum:
                 clauses.append(self.alter_enum_type_clause)
             else:

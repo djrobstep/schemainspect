@@ -101,8 +101,8 @@ def test_basic_schemainspect():
     assert b != b2
     alter = b2.alter_table_statements(b, "t")
     assert alter == [
-        'alter table t alter column "b" set not null;',
         "alter table t alter column \"b\" set default 'd'::text;",
+        'alter table t alter column "b" set not null;',
         'alter table t alter column "b" set data type text using "b"::text;',
     ]
     alter = b.alter_table_statements(b2, "t")
@@ -139,10 +139,7 @@ def test_postgres_objects():
         ex.create_statement
         == 'create extension if not exists "name" with schema "schema" version \'1.2\';'
     )
-    assert (
-        ex.update_statement
-        == 'alter extension "name" update to \'1.2\';'
-    )
+    assert ex.update_statement == "alter extension \"name\" update to '1.2';"
     ex2 = deepcopy(ex)
     assert ex == ex2
     ex2.version = "2.1"
