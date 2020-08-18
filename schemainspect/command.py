@@ -31,8 +31,8 @@ def do_deps(db_url):
         )
 
         return dict(
-            thing=f"{dep.kind_dependent_on}: {thing}",
-            depends_on=f"{dep.kind}: {depends_on}",
+            thing="{}: {}".format(dep.kind_dependent_on, thing),
+            depends_on="{}: {}".format(dep.kind, depends_on),
         )
 
     deps = [process_row(_) for _ in deps]
