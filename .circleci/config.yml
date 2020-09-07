@@ -74,7 +74,7 @@ jobs:
             poetry config virtualenvs.create false
       - run:
           command: |
-            autovenv ~/.venv
+            virtualenv ~/.venv
             . ~/.venv/bin/activate
 
             poetry install
