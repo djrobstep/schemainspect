@@ -79,6 +79,9 @@ def test_dep_order(db):
 
         i = get_inspector(s)
 
+        if i.pg_version <= 10:
+            return
+
         create_order = i.dependency_order(
             include_fk_deps=True,
         )
