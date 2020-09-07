@@ -17,9 +17,9 @@ SELECT 1 FROM pg_roles WHERE rolname=:rolename
 
     if not role_exists:
         s.execute(
-            f"""
+            """
             create role {rolename};
-        """
+        """.format(rolename=rolename)
         )
 
 
@@ -58,7 +58,7 @@ CREATE TABLE t(id uuid, a text, b decimal);
         create_role(s, schemainspect_test_role)
 
         s.execute(
-            f"""
+            """
 
 CREATE TABLE accounts (manager text, company text, contact_email text);
 
@@ -74,7 +74,7 @@ for insert
 to {schemainspect_test_role}
 with check (manager = (CURRENT_USER)::text);
 
-        """
+        """.format(schemainspect_test_role=schemainspect_test_role)
         )
         i = get_inspector(s)
 
