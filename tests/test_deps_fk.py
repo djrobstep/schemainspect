@@ -99,4 +99,3 @@ def test_dep_order(db):
 
             create = thing.create_statement
             s.execute(create)
-
