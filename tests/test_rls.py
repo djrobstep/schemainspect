@@ -19,7 +19,9 @@ SELECT 1 FROM pg_roles WHERE rolname=:rolename
         s.execute(
             """
             create role {rolename};
-        """.format(rolename=rolename)
+        """.format(
+                rolename=rolename
+            )
         )
 
 
@@ -74,7 +76,9 @@ for insert
 to {schemainspect_test_role}
 with check (manager = (CURRENT_USER)::text);
 
-        """.format(schemainspect_test_role=schemainspect_test_role)
+        """.format(
+                schemainspect_test_role=schemainspect_test_role
+            )
         )
         i = get_inspector(s)
 
