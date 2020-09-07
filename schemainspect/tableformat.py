@@ -1,4 +1,9 @@
-from itertools import zip_longest
+import sys
+
+if sys.version_info >= (3, 0):
+    from itertools import zip_longest
+else:
+    from itertools import izip_longest as zip_longest  # noqa
 
 
 def transposed(in_data):
