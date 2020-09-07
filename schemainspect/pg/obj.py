@@ -801,9 +801,9 @@ class InspectedConstraint(Inspected, TableRelated):
         table_name,
         definition,
         index,
-        is_fk,
-        is_deferrable,
-        initially_deferred,
+        is_fk=False,
+        is_deferrable=False,
+        initially_deferred=False,
     ):
         self.name = name
         self.schema = schema

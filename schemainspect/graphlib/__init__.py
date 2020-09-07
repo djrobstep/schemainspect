@@ -186,7 +186,9 @@ class TopologicalSorter:
                         "node {node} was already marked done".format(node=node)
                     )
                 else:
-                    assert False, "node {node}: unknown status {stat}".format(node=node)
+                    assert False, "node {node}: unknown status {stat}".format(
+                        node=node, stat=stat
+                    )
 
             # Mark the node as processed
             nodeinfo.npredecessors = _NODE_DONE
@@ -216,7 +218,8 @@ class TopologicalSorter:
                     # If we have seen already the node and is in the
                     # current stack we have found a cycle.
                     if node in node2stacki:
-                        return stack[node2stacki[node] :] + [node]
+                        val = node2stacki[node]
+                        return stack[val:] + [node]
                     # else go on to get next successor
                 else:
                     seen.add(node)

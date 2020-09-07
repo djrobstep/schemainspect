@@ -7,9 +7,9 @@ from .inspected import ColumnInfo, Inspected
 from .inspector import DBInspector, NullInspector, to_pytype
 
 try:
-    from graphlib import TopologicalSorter
+    from graphlib import TopologicalSorter  # noqa
 except ImportError:
-    from .graphlib import TopologicalSorter
+    from .graphlib import TopologicalSorter  # noqa
 
 
 __all__ = [
