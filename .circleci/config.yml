@@ -74,9 +74,8 @@ jobs:
             poetry config virtualenvs.create false
       - run:
           command: |
-            virtualenv ~/.venv
+            sudo virtualenv ~/.venv
             . ~/.venv/bin/activate
-
             poetry install
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
