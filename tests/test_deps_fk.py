@@ -74,13 +74,15 @@ CREATE TRIGGER emp_stamp BEFORE INSERT OR UPDATE ON emp
 
 def test_dep_order(db):
     with S(db) as s:
-        # s.execute(CREATES)
-        s.execute(CREATES_FK)
-
         i = get_inspector(s)
 
         if i.pg_version <= 10:
             return
+
+        # s.execute(CREATES)
+        s.execute(CREATES_FK)
+
+        i = get_inspector(s)
 
         create_order = i.dependency_order(
             include_fk_deps=True,
