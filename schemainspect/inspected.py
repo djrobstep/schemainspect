@@ -139,12 +139,14 @@ class ColumnInfo(AutoRepr):
 
     def change_string_to_enum_statement(self, table_name):
         if self.is_enum:
-            return "alter table {} alter column {} set data type {} using {}::{};".format(
-                table_name,
-                self.quoted_name,
-                self.dbtypestr,
-                self.quoted_name,
-                self.dbtypestr,
+            return (
+                "alter table {} alter column {} set data type {} using {}::{};".format(
+                    table_name,
+                    self.quoted_name,
+                    self.dbtypestr,
+                    self.quoted_name,
+                    self.dbtypestr,
+                )
             )
         else:
             raise ValueError

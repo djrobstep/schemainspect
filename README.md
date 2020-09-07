@@ -6,8 +6,7 @@ Inspects tables, views, materialized views, constraints, indexes, sequences, enu
 
 **Limitations:** Function inspection only confirmed to work with SQL/PLPGSQL languages so far.
 
-Basic Usage
------------
+## Basic Usage
 
 Get an inspection object from an already opened SQLAlchemy session or connection as follows:
 

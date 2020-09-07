@@ -26,7 +26,39 @@ select
     pg_get_constraintdef(pg_constraint.oid) as definition,
     tc.constraint_type as constraint_type,
     i.name as index,
-    e.objid as extension_oid
+    e.objid as extension_oid,
+    case when tc.constraint_type = 'FOREIGN KEY' then
+        (
+            SELECT nspname
+            FROM pg_catalog.pg_class AS c
+            JOIN pg_catalog.pg_namespace AS ns
+            ON c.relnamespace = ns.oid
+            WHERE c.oid = confrelid::regclass
+        )
+
+    end as foreign_table_schema,
+    case when tc.constraint_type = 'FOREIGN KEY' then
+        confrelid::regclass
+    end as foreign_table_name,
+    case when tc.constraint_type = 'FOREIGN KEY' then
+        (
+            select
+                array_agg(ta.attname order by ta.attnum)
+            from
+            pg_attribute ta where ta.attrelid = conrelid and ta.attnum = any(conkey)
+        )
+    else null end as fk_columns_local,
+    case when tc.constraint_type = 'FOREIGN KEY' then
+        (
+            select
+                array_agg(fa.attname order by fa.attnum)
+            from
+            pg_attribute fa where fa.attrelid = confrelid and fa.attnum = any(confkey)
+        )
+    else null end as fk_columns_foreign,
+    tc.constraint_type = 'FOREIGN KEY' as is_fk,
+    tc.is_deferrable = 'YES' as is_deferrable,
+    tc.initially_deferred = 'YES' as initially_deferred
 from
     pg_constraint
     INNER JOIN pg_class

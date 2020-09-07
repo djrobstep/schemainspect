@@ -6,6 +6,12 @@ from .get import get_inspector
 from .inspected import ColumnInfo, Inspected
 from .inspector import DBInspector, NullInspector, to_pytype
 
+try:
+    from graphlib import TopologicalSorter
+except ImportError:
+    from .graphlib import TopologicalSorter
+
+
 __all__ = [
     "DBInspector",
     "to_pytype",

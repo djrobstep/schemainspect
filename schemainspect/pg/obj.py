@@ -793,13 +793,32 @@ class InspectedExtension(Inspected):
 
 
 class InspectedConstraint(Inspected, TableRelated):
-    def __init__(self, name, schema, constraint_type, table_name, definition, index):
+    def __init__(
+        self,
+        name,
+        schema,
+        constraint_type,
+        table_name,
+        definition,
+        index,
+        is_fk,
+        is_deferrable,
+        initially_deferred,
+    ):
         self.name = name
         self.schema = schema
         self.constraint_type = constraint_type
         self.table_name = table_name
         self.definition = definition
         self.index = index
+        self.is_fk = is_fk
+
+        self.quoted_full_foreign_table_name = None
+        self.fk_columns_local = None
+        self.fk_columns_foreign = None
+
+        self.is_deferrable = is_deferrable
+        self.initially_deferred = initially_deferred
 
     @property
     def drop_statement(self):
@@ -830,6 +849,12 @@ class InspectedConstraint(Inspected, TableRelated):
             quoted_identifier(self.schema),
             quoted_identifier(self.table_name),
             quoted_identifier(self.name),
+        )
+
+    @property
+    def quoted_full_table_name(self):
+        return "{}.{}".format(
+            quoted_identifier(self.schema), quoted_identifier(self.table_name)
         )
 
     def __eq__(self, other):
@@ -1148,6 +1173,48 @@ class PostgreSQL(DBInspector):
             d_all.sort()
             x.dependents_all = d_all
 
+    def dependency_order(
+        self,
+        drop_order=False,
+        selectables=True,
+        triggers=True,
+        enums=True,
+        include_fk_deps=False,
+    ):
+        from schemainspect import TopologicalSorter
+
+        graph, things = {}, {}
+
+        if enums:
+            things.update(self.enums)
+        if selectables:
+            things.update(self.selectables)
+        if triggers:
+            things.update(self.triggers)
+
+        for k, x in things.items():
+            graph[k] = list(x.dependent_on)
+
+        if include_fk_deps:
+            fk_deps = {}
+
+            for k, x in self.constraints.items():
+                if x.is_fk:
+                    t, other_t = (
+                        x.quoted_full_table_name,
+                        x.quoted_full_foreign_table_name,
+                    )
+                    fk_deps[t] = [other_t]
+
+            graph.update(fk_deps)
+
+        ts = TopologicalSorter(graph)
+        ordering = list(ts.static_order())
+
+        if drop_order:
+            ordering.reverse()
+        return ordering
+
     @property
     def partitioned_tables(self):
         return od((k, v) for k, v in self.tables.items() if v.is_partitioned)
@@ -1297,12 +1364,22 @@ class PostgreSQL(DBInspector):
                 table_name=i.table_name,
                 definition=i.definition,
                 index=i.index,
+                is_fk=i.is_fk,
+                is_deferrable=i.is_deferrable,
+                initially_deferred=i.initially_deferred,
             )
             if constraint.index:
                 index_name = quoted_identifier(i.index, schema=i.schema)
                 index = self.indexes[index_name]
                 index.constraint = constraint
                 constraint.index = index
+
+            if constraint.is_fk:
+                constraint.quoted_full_foreign_table_name = quoted_identifier(
+                    i.foreign_table_name, schema=i.foreign_table_schema
+                )
+                constraint.fk_columns_foreign = i.fk_columns_foreign
+                constraint.fk_columns_local = i.fk_columns_local
 
             constraintlist.append(constraint)
 
