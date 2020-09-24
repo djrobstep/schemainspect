@@ -5,7 +5,8 @@ extension_objids as (
     from
         pg_depend d
     WHERE
-        d.refclassid = 'pg_extension'::regclass
+        d.refclassid = 'pg_extension'::regclass and
+        d.classid = 'pg_class'::regclass
 ), pre as (
     select
         n.nspname as schema,
