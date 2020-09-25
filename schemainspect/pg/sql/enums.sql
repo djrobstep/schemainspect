@@ -4,7 +4,8 @@ with extension_oids as (
   from
       pg_depend d
   WHERE
-      d.refclassid = 'pg_extension'::regclass
+      d.refclassid = 'pg_extension'::regclass and
+      d.classid = 'pg_type'::regclass
 )
 SELECT
   n.nspname as "schema",
