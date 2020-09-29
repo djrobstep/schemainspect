@@ -5,7 +5,15 @@ with extension_oids as (
       pg_depend d
   WHERE
       d.refclassid = 'pg_extension'::regclass
-      and (d.classid = 'pg_constraint'::regclass or d.classid = 'pg_class'::regclass)
+      and d.classid = 'pg_constraint'::regclass
+), extension_rels as (
+  select
+      objid
+  from
+      pg_depend d
+  WHERE
+      d.refclassid = 'pg_extension'::regclass
+      and d.classid = 'pg_class'::regclass
 ), indexes as (
     select
         schemaname as schema,
@@ -36,7 +44,6 @@ select
             ON c.relnamespace = ns.oid
             WHERE c.oid = confrelid::regclass
         )
-
     end as foreign_table_schema,
     case when tc.constraint_type = 'FOREIGN KEY' then
         confrelid::regclass
@@ -76,7 +83,11 @@ from
         and relname = i.table_name
     left outer join extension_oids e
       on pg_class.oid = e.objid
+    left outer join extension_rels er
+      on er.objid = conrelid
+    left outer join extension_rels cr
+      on cr.objid = confrelid
     where true
   -- SKIP_INTERNAL and nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
-  -- SKIP_INTERNAL and e.objid is null
+  -- SKIP_INTERNAL and e.objid is null and er.objid is null and cr.objid is null
 order by 1, 3, 2;

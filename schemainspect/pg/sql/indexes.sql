@@ -6,7 +6,16 @@ with extension_oids as (
       pg_depend d
   WHERE
       d.refclassid = 'pg_extension'::regclass and
-      (d.classid = 'pg_index'::regclass or d.classid = 'pg_class'::regclass)
+      d.classid = 'pg_index'::regclass 
+), 
+extension_relations as (
+  select
+      objid
+  from
+      pg_depend d
+  WHERE
+      d.refclassid = 'pg_extension'::regclass and
+      d.classid = 'pg_class'::regclass 
 ) SELECT n.nspname AS schema,
    c.relname AS table_name,
    i.relname AS name,
@@ -25,10 +34,12 @@ with extension_oids as (
     JOIN pg_class i ON i.oid = x.indexrelid
     JOIN pg_am am ON i.relam = am.oid
     LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
-    left join extension_oids e
-      on c.oid = e.objid or i.oid = e.objid
- WHERE c.relkind in ('r', 'm', 'p') AND i.relkind in ('i', 'I')
+     left join extension_oids e
+      on i.oid = e.objid
+    left join extension_relations er
+      on c.oid = er.objid
+WHERE c.relkind in ('r', 'm', 'p') AND i.relkind in ('i', 'I')
       -- SKIP_INTERNAL and nspname not in ('pg_catalog', 'information_schema', 'pg_toast')
       -- SKIP_INTERNAL and nspname not like 'pg_temp_%' and nspname not like 'pg_toast_temp_%'
-      -- SKIP_INTERNAL and e.objid is null
+      -- SKIP_INTERNAL and e.objid is null and er.objid is null
 order by 1, 2, 3;
