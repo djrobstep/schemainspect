@@ -5,7 +5,7 @@ with extension_oids as (
       pg_depend d
   WHERE
       d.refclassid = 'pg_extension'::regclass
-      and d.classid = 'pg_constraint'::regclass
+      and (d.classid = 'pg_constraint'::regclass or d.classid = 'pg_class'::regclass)
 ), indexes as (
     select
         schemaname as schema,
