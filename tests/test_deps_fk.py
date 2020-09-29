@@ -89,14 +89,9 @@ def test_dep_order(db):
         # dependency_order doesn't work in py2
         if sys.version_info < (3, 0):
             return
-        create_order = i.dependency_order(
-            include_fk_deps=True,
-        )
+        create_order = i.dependency_order(include_fk_deps=True,)
 
-        drop_order = i.dependency_order(
-            drop_order=True,
-            include_fk_deps=True,
-        )
+        drop_order = i.dependency_order(drop_order=True, include_fk_deps=True,)
 
         for x in drop_order:
             thing = i.get_dependency_by_signature(x)

@@ -1,11 +1,12 @@
 with extension_oids as (
   select
-      objid
+      objid,
+      classid::regclass::text as classid
   from
       pg_depend d
   WHERE
       d.refclassid = 'pg_extension'::regclass and
-      d.classid = 'pg_index'::regclass 
+      (d.classid = 'pg_index'::regclass or d.classid = 'pg_class'::regclass)
 ) SELECT n.nspname AS schema,
    c.relname AS table_name,
    i.relname AS name,
