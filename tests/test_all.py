@@ -324,7 +324,7 @@ def n(name, schema="public"):
     return quoted_identifier(name, schema=schema)
 
 
-def asserts_pg(i):
+def asserts_pg(i, has_timescale=False):
     # schemas
     assert list(i.schemas.keys()) == ["otherschema", "public"]
     otherschema = i.schemas["otherschema"]
@@ -405,10 +405,13 @@ def asserts_pg(i):
     assert f2.comment is None
 
     # extensions
-    assert [e.quoted_full_name for e in i.extensions.values()] == [
+    ext = [
         n("plpgsql", schema="pg_catalog"),
         n("pg_trgm"),
     ]
+    if has_timescale:
+        ext.append(n("timescaledb"))
+    assert [e.quoted_full_name for e in i.extensions.values()] == ext
 
     # constraints
     cons = i.constraints['"public"."films"."firstkey"']
@@ -613,11 +616,23 @@ def test_sequences(db):
         assert owned.quoted_table_and_column_name == '"public"."t"."id"'
 
 
-def test_postgres_inspect(db):
+def test_postgres_inspect(db, pytestconfig):
+    if pytestconfig.getoption('timescale'):
+        pytest.skip('--timescale was specified')
+    else:
+        assert_postgres_inspect(db)
+
+
+@pytest.mark.timescale
+def test_timescale_inspect(db):
+    assert_postgres_inspect(db, has_timescale=True)
+
+
+def assert_postgres_inspect(db, has_timescale=False):
     with S(db) as s:
         setup_pg_schema(s)
         i = get_inspector(s)
-        asserts_pg(i)
+        asserts_pg(i, has_timescale)
         assert i == i == get_inspector(s)
 
 
