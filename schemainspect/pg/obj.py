@@ -1518,12 +1518,34 @@ class PostgreSQL(DBInspector):
         ]  # type: list[InspectedType]
         self.domains = od((t.signature, t) for t in domains)
 
-    def one_schema(self, schema):
+    def filter_schema(self, schema=None, exclude_schema=None):
+        if schema and exclude_schema:
+            raise ValueError("Can only have schema or exclude schema, not both")
+
+        def equal_to_schema(x):
+            return x.schema == schema
+
+        def not_equal_to_exclude_schema(x):
+            return x.schema != exclude_schema
+
         props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations triggers"
+        if schema:
+            comparitor = equal_to_schema
+        elif exclude_schema:
+            comparitor = not_equal_to_exclude_schema
+        else:
+            raise ValueError("schema or exclude_schema must be not be none")
+
         for prop in props.split():
             att = getattr(self, prop)
-            filtered = {k: v for k, v in att.items() if v.schema == schema}
+            filtered = {k: v for k, v in att.items() if comparitor(v)}
             setattr(self, prop, filtered)
+
+    def one_schema(self, schema):
+        self.filter_schema(schema=schema)
+
+    def exclude_schema(self, schema):
+        self.filter_schema(exclude_schema=schema)
 
     def __eq__(self, other):
         """
