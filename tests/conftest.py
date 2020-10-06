@@ -10,7 +10,7 @@ def db():
 
 def pytest_addoption(parser):
     parser.addoption(
-        '--timescale', action='store_true', help='Test with Timescale extension'
+        "--timescale", action="store_true", help="Test with Timescale extension"
     )
 
 
