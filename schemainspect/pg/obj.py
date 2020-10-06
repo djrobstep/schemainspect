@@ -1530,15 +1530,15 @@ class PostgreSQL(DBInspector):
 
         props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations triggers"
         if schema:
-            comparitor = equal_to_schema
+            comparator = equal_to_schema
         elif exclude_schema:
-            comparitor = not_equal_to_exclude_schema
+            comparator = not_equal_to_exclude_schema
         else:
             raise ValueError("schema or exclude_schema must be not be none")
 
         for prop in props.split():
             att = getattr(self, prop)
-            filtered = {k: v for k, v in att.items() if comparitor(v)}
+            filtered = {k: v for k, v in att.items() if comparator(v)}
             setattr(self, prop, filtered)
 
     def one_schema(self, schema):
