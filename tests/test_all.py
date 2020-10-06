@@ -617,8 +617,8 @@ def test_sequences(db):
 
 
 def test_postgres_inspect(db, pytestconfig):
-    if pytestconfig.getoption('timescale'):
-        pytest.skip('--timescale was specified')
+    if pytestconfig.getoption("timescale"):
+        pytest.skip("--timescale was specified")
     else:
         assert_postgres_inspect(db)
 
@@ -631,7 +631,7 @@ def test_timescale_inspect(db):
 def assert_postgres_inspect(db, has_timescale=False):
     with S(db) as s:
         if has_timescale:
-            s.execute('create extension if not exists timescaledb;')
+            s.execute("create extension if not exists timescaledb;")
         setup_pg_schema(s)
         i = get_inspector(s)
         asserts_pg(i, has_timescale)
