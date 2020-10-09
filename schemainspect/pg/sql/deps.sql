@@ -28,6 +28,14 @@ extension_objids as (
       pg_depend d
   WHERE
       d.refclassid = 'pg_extension'::regclass
+    union
+    select
+        t.typrelid as extension_objid
+    from
+        pg_depend d
+        join pg_type t on t.oid = d.objid
+    where
+        d.refclassid = 'pg_extension'::regclass
 ),
 things as (
     select
