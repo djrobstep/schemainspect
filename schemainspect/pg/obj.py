@@ -400,6 +400,8 @@ class InspectedIndex(Inspected, TableRelated):
         algorithm,
         definition=None,
         constraint=None,
+        index_columns=None,
+        included_columns=None,
     ):
         self.name = name
         self.schema = schema
@@ -418,6 +420,8 @@ class InspectedIndex(Inspected, TableRelated):
         self.partial_predicate = partial_predicate
         self.algorithm = algorithm
         self.constraint = constraint
+        self.index_columns = index_columns
+        self.included_columns = included_columns
 
     @property
     def drop_statement(self):
@@ -437,6 +441,7 @@ class InspectedIndex(Inspected, TableRelated):
             self.schema == other.schema,
             self.table_name == other.table_name,
             self.key_columns == other.key_columns,
+            self.included_columns == other.included_columns,
             self.key_options == other.key_options,
             self.num_att == other.num_att,
             self.is_unique == other.is_unique,
@@ -1329,6 +1334,8 @@ class PostgreSQL(DBInspector):
                 definition=i.definition,
                 table_name=i.table_name,
                 key_columns=i.key_columns,
+                index_columns=i.index_columns,
+                included_columns=i.included_columns,
                 key_options=i.key_options,
                 num_att=i.num_att,
                 is_unique=i.is_unique,
