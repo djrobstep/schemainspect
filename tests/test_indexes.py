@@ -53,3 +53,55 @@ def test_constraints(db):
         indexes_keys = list(i.indexes.keys())
 
         assert indexes_keys == ['"public"."t_pkey"']
+
+
+INDEX_DEFS = """
+
+create schema s;
+
+CREATE TABLE s.t (
+    id uuid NOT NULL,
+    a int4 NULL,
+    b int4 NULL,
+    CONSTRAINT pk PRIMARY KEY (id)
+);
+
+CREATE UNIQUE INDEX i ON s.t USING btree (a);
+
+CREATE UNIQUE INDEX iii ON s.t USING btree (b, a) include (id);
+
+CREATE UNIQUE INDEX iii_exp ON s.t((lower(id::text)));
+
+"""
+
+
+def test_index_defs(db):
+    with S(db) as s:
+        s.execute(INDEX_DEFS)
+
+        ii = get_inspector(s)
+        indexes_keys = list(ii.indexes.keys())
+
+        EXPECTED = ['"s"."i"', '"s"."iii"', '"s"."iii_exp"', '"s"."pk"']
+        assert indexes_keys == EXPECTED
+
+        i = ii.indexes['"s"."i"']
+
+        assert i.index_columns == ["a"]
+        assert i.key_columns == ["a"]
+        assert i.included_columns == []
+        assert i.key_expressions is None
+
+        i = ii.indexes['"s"."iii"']
+
+        assert i.index_columns == ["b", "a", "id"]
+        assert i.key_columns == ["b", "a"]
+        assert i.included_columns == ["id"]
+        assert i.key_expressions is None
+
+        i = ii.indexes['"s"."iii_exp"']
+
+        assert i.index_columns is None
+        assert i.key_columns is None
+        assert i.included_columns is None
+        assert i.key_expressions == "lower((id)::text)"
