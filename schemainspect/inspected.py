@@ -53,6 +53,7 @@ class ColumnInfo(AutoRepr):
         is_identity=False,
         is_identity_always=False,
         is_generated=False,
+        is_inherited=False,
     ):
         self.name = name or ""
         self.dbtype = dbtype
@@ -66,6 +67,7 @@ class ColumnInfo(AutoRepr):
         self.is_identity = is_identity
         self.is_identity_always = is_identity_always
         self.is_generated = is_generated
+        self.is_inherited = is_inherited
 
     def __eq__(self, other):
         return (
@@ -80,6 +82,7 @@ class ColumnInfo(AutoRepr):
             and self.is_identity == other.is_identity
             and self.is_identity_always == other.is_identity_always
             and self.is_generated == other.is_generated
+            and self.is_inherited == other.is_inherited
         )
 
     def alter_clauses(self, other):

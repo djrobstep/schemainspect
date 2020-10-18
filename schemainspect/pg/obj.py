@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import inspect
 import sys
 from collections import OrderedDict as od
 from itertools import groupby
@@ -164,7 +165,9 @@ class InspectedSelectable(BaseInspectedSelectable):
 
     @property
     def is_alterable(self):
-        return self.is_table and not self.parent_table
+        return self.is_table and (
+            not self.parent_table or self.is_inheritance_child_table
+        )
 
     @property
     def contains_data(self):
@@ -640,6 +643,14 @@ class InspectedSchema(Inspected):
     def drop_statement(self):
         return "drop schema if exists {};".format(self.quoted_schema)
 
+    @property
+    def quoted_full_name(self):
+        return self.quoted_name
+
+    @property
+    def quoted_name(self):
+        return quoted_identifier(self.schema)
+
     def __eq__(self, other):
         return self.schema == other.schema
 
@@ -998,6 +1009,9 @@ class InspectedRowPolicy(Inspected, TableRelated):
         return all(equalities)
 
 
+PROPS = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations triggers"
+
+
 class PostgreSQL(DBInspector):
     def __init__(self, c, include_internal=False):
         pg_version = c.dialect.server_version_info[0]
@@ -1154,6 +1168,11 @@ class PostgreSQL(DBInspector):
                     if e_sig in self.enums:
                         r.dependent_on.append(e_sig)
                         c.enum.dependents.append(k)
+
+            if r.parent_table:
+                pt = self.relations[r.parent_table]
+                r.dependent_on.append(r.parent_table)
+                pt.dependents.append(r.signature)
 
     def get_dependency_by_signature(self, signature):
         things = [self.selectables, self.enums, self.triggers]
@@ -1323,6 +1342,14 @@ class PostgreSQL(DBInspector):
             }
             att = getattr(self, RELATIONTYPES[f.relationtype])
             att[s.quoted_full_name] = s
+
+        for k, t in self.tables.items():
+            if t.is_inheritance_child_table:
+                parent_table = self.tables[t.parent_table]
+                for cname, c in t.columns.items():
+                    if cname in parent_table.columns:
+                        c.is_inherited = True
+
         self.relations = od()
         for x in (self.tables, self.views, self.materialized_views):
             self.relations.update(x)
@@ -1535,7 +1562,6 @@ class PostgreSQL(DBInspector):
         def not_equal_to_exclude_schema(x):
             return x.schema != exclude_schema
 
-        props = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations triggers"
         if schema:
             comparator = equal_to_schema
         elif exclude_schema:
@@ -1543,10 +1569,36 @@ class PostgreSQL(DBInspector):
         else:
             raise ValueError("schema or exclude_schema must be not be none")
 
-        for prop in props.split():
+        for prop in PROPS.split():
             att = getattr(self, prop)
             filtered = {k: v for k, v in att.items() if comparator(v)}
             setattr(self, prop, filtered)
+
+    def _as_dicts(self):
+        def obj_to_d(x):
+            if isinstance(x, dict):
+                return {k: obj_to_d(v) for k, v in x.items()}
+
+            elif isinstance(x, (ColumnInfo, Inspected)):
+                return {
+                    k: obj_to_d(getattr(x, k))
+                    for k in dir(x)
+                    if not k.startswith("_") and not inspect.ismethod(getattr(x, k))
+                }
+            else:
+
+                return str(x)
+
+        d = {}
+
+        for prop in PROPS.split():
+            att = getattr(self, prop)
+
+            _d = {k: obj_to_d(v) for k, v in att.items()}
+
+            d[prop] = _d
+
+        return d
 
     def one_schema(self, schema):
         self.filter_schema(schema=schema)
