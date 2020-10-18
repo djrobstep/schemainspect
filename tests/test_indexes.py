@@ -80,6 +80,10 @@ def test_index_defs(db):
         s.execute(INDEX_DEFS)
 
         ii = get_inspector(s)
+
+        if ii.pg_version <= 9:
+            return
+
         indexes_keys = list(ii.indexes.keys())
 
         EXPECTED = ['"s"."i"', '"s"."iii"', '"s"."iii_exp"', '"s"."pk"']
