@@ -67,7 +67,7 @@ WHERE
       -- SKIP_INTERNAL and e.objid is null and er.objid is null
 )
 select * ,
-index_columns[\:key_column_count] as key_columns,
-index_columns[key_column_count+1\:] as included_columns
+index_columns[1\:key_column_count] as key_columns,
+index_columns[key_column_count+1\:array_length(index_columns, 1)] as included_columns
 from pre
 order by 1, 2, 3;
