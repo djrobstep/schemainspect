@@ -28,25 +28,26 @@ CREATES = """
 """
 
 CREATES_FK = """
+create schema other;
 
 create type emptype as enum('a', 'b', 'c');
 
 
-CREATE TABLE emp (
+CREATE TABLE other.emp (
     id bigint primary key,
     empname text,
     category emptype
 );
 
 create table salary (
-    emp_id bigint unique references emp(id),
+    emp_id bigint unique references other.emp(id),
     salary bigint not null
 );
 
 create view empview as (
     select
         *
-    from emp
+    from other.emp
         join salary on
             emp.id = salary.emp_id
 );
@@ -64,12 +65,8 @@ CREATE FUNCTION emp() RETURNS trigger AS $emp_stamp$
     END;
 $emp_stamp$ LANGUAGE plpgsql;
 
-CREATE TRIGGER emp_stamp BEFORE INSERT OR UPDATE ON emp
+CREATE TRIGGER emp_stamp BEFORE INSERT OR UPDATE ON other.emp
     FOR EACH ROW EXECUTE FUNCTION emp();
-
-
-
-
 
 """
 
@@ -89,9 +86,14 @@ def test_dep_order(db):
         # dependency_order doesn't work in py2
         if sys.version_info < (3, 0):
             return
-        create_order = i.dependency_order(include_fk_deps=True,)
+        create_order = i.dependency_order(
+            include_fk_deps=True,
+        )
 
-        drop_order = i.dependency_order(drop_order=True, include_fk_deps=True,)
+        drop_order = i.dependency_order(
+            drop_order=True,
+            include_fk_deps=True,
+        )
 
         for x in drop_order:
             thing = i.get_dependency_by_signature(x)
@@ -104,3 +106,20 @@ def test_dep_order(db):
 
             create = thing.create_statement
             s.execute(create)
+
+
+def test_fk_info(db):
+    with S(db) as s:
+        i = get_inspector(s)
+
+        if i.pg_version <= 10:
+            return
+
+        s.execute(CREATES_FK)
+
+        i = get_inspector(s)
+
+        fk = i.constraints['"public"."salary"."salary_emp_id_fkey"']
+
+        assert fk.is_fk is True
+        assert fk.quoted_full_foreign_table_name == '"other"."emp"'

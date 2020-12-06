@@ -21,7 +21,7 @@ pytest-cov = "*"
 pytest-clarity = ">=0.3.0-alpha.0"
 psycopg2-binary = "*"
 flake8 = "*"
-isort = "*"
+isort = {version=">=5", python=">=3.6,<4"}
 migra = "*"
 black = { version = ">=19.10b0", python=">=3.6" }
 

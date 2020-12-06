@@ -46,7 +46,11 @@ select
         )
     end as foreign_table_schema,
     case when tc.constraint_type = 'FOREIGN KEY' then
-        confrelid::regclass
+        (
+            select relname
+            from pg_catalog.pg_class c
+            where c.oid = confrelid::regclass
+        )
     end as foreign_table_name,
     case when tc.constraint_type = 'FOREIGN KEY' then
         (

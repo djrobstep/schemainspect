@@ -18,7 +18,7 @@ clean:
 	find . -name \*.pyc -delete
 
 fmt:
-	isort -rc .
+	isort .
 	black .
 
 lint:
