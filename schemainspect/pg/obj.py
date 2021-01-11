@@ -555,11 +555,12 @@ class InspectedCollation(Inspected):
 
 
 class InspectedEnum(Inspected):
-    def __init__(self, name, schema, elements, pg_version=None):
+    def __init__(self, name, schema, elements, pg_version=None, is_extension=None):
         self.name = name
         self.schema = schema
         self.elements = elements
         self.pg_version = pg_version
+        self.is_extension = is_extension
         self.dependents = []
         self.dependent_on = []
 
@@ -1282,6 +1283,7 @@ class PostgreSQL(DBInspector):
                 schema=i.schema,
                 elements=i.elements,
                 pg_version=self.pg_version,
+                is_extension=i.is_extension,
             )
             for i in q
         ]
