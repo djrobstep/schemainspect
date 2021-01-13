@@ -844,21 +844,32 @@ class InspectedConstraint(Inspected, TableRelated):
         )
 
     @property
-    def create_statement(self):
-        USING = "alter table {} add constraint {} {} using index {};"
-        NOT_USING = "alter table {} add constraint {} {};"
-        if self.index:
-            return USING.format(
-                self.quoted_full_table_name,
-                self.quoted_name,
-                self.constraint_type,
-                self.quoted_name,
-            )
+    def deferrable_subclause(self):
+        # [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]
+
+        if not self.is_deferrable:
+            return ""
 
         else:
-            return NOT_USING.format(
-                self.quoted_full_table_name, self.quoted_name, self.definition
+            clause = " DEFERRABLE"
+
+            if self.initially_deferred:
+                clause += " INITIALLY DEFERRED"
+
+            return clause
+
+    @property
+    def create_statement(self):
+        if self.index:
+            using_clause = "{} using index {}{}".format(
+                self.constraint_type, self.quoted_name, self.deferrable_subclause
             )
+        else:
+            using_clause = self.definition
+
+        USING = "alter table {} add constraint {} {};"
+
+        return USING.format(self.quoted_full_table_name, self.quoted_name, using_clause)
 
     @property
     def quoted_full_name(self):
@@ -881,6 +892,8 @@ class InspectedConstraint(Inspected, TableRelated):
             self.table_name == other.table_name,
             self.definition == other.definition,
             self.index == other.index,
+            self.is_deferrable == other.is_deferrable,
+            self.initially_deferred == other.initially_deferred,
         )
         return all(equalities)
 
