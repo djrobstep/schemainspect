@@ -1,3 +1,5 @@
+import pytest
+import sqlalchemy
 from sqlbag import S
 
 from schemainspect import get_inspector
@@ -93,6 +95,38 @@ create view v as select * from t;
         assert e in i.enums
 
         assert i.enums[e].dependents == [t, v]
+        assert e in i.selectables[t].dependent_on
+        assert e in i.selectables[v].dependent_on
+
+
+def test_extension_enum_deps(db):
+    ENUM_DEP_SAMPLE = """\
+create schema color;
+create extension dummycolor schema color;
+
+create table t(id integer primary key, color color.color);
+
+create view v as select * from t;
+
+"""
+    with S(db) as s:
+        try:
+            s.execute(ENUM_DEP_SAMPLE)
+        except sqlalchemy.exc.OperationalError as e:
+            if "could not open extension control file" in str(e):
+                pytest.skip("color enum dummy extension is not available")
+            raise
+
+        i = get_inspector(s)
+
+        e = '"color"."color"'
+        t = '"public"."t"'
+        v = '"public"."v"'
+
+        assert e not in i.enums
+        assert e in i.extension_enums
+
+        assert i.extension_enums[e].dependents == [t, v]
         assert e in i.selectables[t].dependent_on
         assert e in i.selectables[v].dependent_on
 

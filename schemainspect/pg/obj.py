@@ -1170,13 +1170,17 @@ class PostgreSQL(DBInspector):
                         r.dependent_on.append(e_sig)
                         c.enum.dependents.append(k)
 
+                    elif e_sig in self.extension_enums:
+                        r.dependent_on.append(e_sig)
+                        c.enum.dependents.append(k)
+
             if r.parent_table:
                 pt = self.relations[r.parent_table]
                 r.dependent_on.append(r.parent_table)
                 pt.dependents.append(r.signature)
 
     def get_dependency_by_signature(self, signature):
-        things = [self.selectables, self.enums, self.triggers]
+        things = [self.selectables, self.enums, self.extension_enums, self.triggers]
 
         for thing in things:
             try:
@@ -1304,6 +1308,8 @@ class PostgreSQL(DBInspector):
                 quoted_full_name = "{}.{}".format(
                     quoted_identifier(schema), quoted_identifier(name)
                 )
+                if quoted_full_name in self.extension_enums:
+                    return self.extension_enums[quoted_full_name]
                 return self.enums[quoted_full_name]
 
             columns = [
@@ -1623,6 +1629,7 @@ class PostgreSQL(DBInspector):
             and self.relations == other.relations
             and self.sequences == other.sequences
             and self.enums == other.enums
+            and self.extension_enums == other.extension_enums
             and self.constraints == other.constraints
             and self.extensions == other.extensions
             and self.functions == other.functions
