@@ -1287,9 +1287,12 @@ class PostgreSQL(DBInspector):
             )
             for i in q
         ]
-        self.enums = od((i.quoted_full_name, i) for i in enumlist)
-        q = self.c.execute(self.ALL_RELATIONS_QUERY)
+        self.enums = od((i.quoted_full_name, i) for i in enumlist if not i.is_extension)
+        self.extension_enums = od(
+            (i.quoted_full_name, i) for i in enumlist if i.is_extension
+        )
 
+        q = self.c.execute(self.ALL_RELATIONS_QUERY)
         for _, g in groupby(q, lambda x: (x.relationtype, x.schema, x.name)):
             clist = list(g)
             f = clist[0]

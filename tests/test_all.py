@@ -660,7 +660,8 @@ def test_enums_from_extensions(db):
 
         i = get_inspector(s)
 
-        enums = list(i.enums)
+        assert len(i.enums) == 0
+        enums = list(i.extension_enums)
         assert enums == ['"color"."color"']
 
         color = i.enums['"color"."color"']
