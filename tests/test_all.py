@@ -628,13 +628,14 @@ def test_enums(db):
 
         i = get_inspector(s)
 
+        assert len(i.extension_enums) == 0
         enums = list(i.enums)
         assert enums == ['"public"."color"']
 
         color = i.enums['"public"."color"']
-        assert color.name == 'color'
-        assert color.schema == 'public'
-        assert color.elements == ['blue', 'teal', 'eggshell', 'spamshell']
+        assert color.name == "color"
+        assert color.schema == "public"
+        assert color.elements == ["blue", "teal", "eggshell", "spamshell"]
         assert color.pg_version == i.pg_version
         assert not color.is_extension
 
@@ -654,8 +655,8 @@ def test_enums_from_extensions(db):
             """
             )
         except sqlalchemy.exc.OperationalError as e:
-            if 'could not open extension control file' in str(e):
-                pytest.skip('color enum dummy extension is not available')
+            if "could not open extension control file" in str(e):
+                pytest.skip("color enum dummy extension is not available")
             raise
 
         i = get_inspector(s)
@@ -664,10 +665,10 @@ def test_enums_from_extensions(db):
         enums = list(i.extension_enums)
         assert enums == ['"color"."color"']
 
-        color = i.enums['"color"."color"']
-        assert color.name == 'color'
-        assert color.schema == 'color'
-        assert color.elements == ['blue', 'aqua', 'eggshell', 'seashell']
+        color = i.extension_enums['"color"."color"']
+        assert color.name == "color"
+        assert color.schema == "color"
+        assert color.elements == ["blue", "aqua", "eggshell", "seashell"]
         assert color.pg_version == i.pg_version
         assert color.is_extension
 
