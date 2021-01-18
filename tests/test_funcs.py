@@ -45,3 +45,23 @@ def test_kinds(db):
             p.drop_statement
             == 'drop procedure if exists "public"."proc"(a integer, b integer);'
         )
+
+
+def test_long_identifiers(db):
+    with S(db) as s:
+
+        for i in range(50, 70):
+            ident = "x" * i
+            truncated = "x" * min(i, 63)
+
+            func = FUNC.replace("ordinary_f", ident)
+
+            s.execute(func)
+
+            i = get_inspector(s)
+
+            expected_sig = '"public"."{}"(t text)'.format(truncated)
+
+            f = i.functions[expected_sig]
+
+            assert f.full_definition is not None
