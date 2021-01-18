@@ -7,6 +7,12 @@ with extension_oids as (
           d.refclassid = 'pg_extension'::regclass
           and d.classid = 'pg_proc'::regclass
     ),
+    pg_proc_pre as (
+      select
+        -- 11_AND_LATER *
+        -- 10_AND_EARLIER *, case when p.proisagg then 'a' else 'f' end as prokind
+      from pg_proc
+    ),
 routines as (
  SELECT current_database()::information_schema.sql_identifier AS specific_catalog,
     n.nspname::information_schema.sql_identifier AS specific_schema,
@@ -81,10 +87,9 @@ routines as (
     p.proargdefaults,
     p.proargmodes,
     p.proowner,
-    -- 11_AND_LATER p.prokind as kind
-    -- 10_AND_EARLIER case when p.proisagg then 'a' else 'f' end as kind
+    p.prokind as kind
    FROM pg_namespace n
-     JOIN pg_proc p ON n.oid = p.pronamespace
+     JOIN pg_proc_pre p ON n.oid = p.pronamespace
      JOIN pg_language l ON p.prolang = l.oid
      LEFT JOIN (pg_type t
      JOIN pg_namespace nt ON t.typnamespace = nt.oid) ON p.prorettype = t.oid AND p.prokind <> 'p'::"char"
