@@ -9,10 +9,10 @@ with extension_oids as (
     ),
     pg_proc_pre as (
       select
-        *,
-        -- 11_AND_LATER p.oid
-        -- 10_AND_EARLIER p.oid, case when p.proisagg then 'a' else 'f' end as prokind
-      from pg_proc
+        pp.*,
+        -- 11_AND_LATER pp.oid
+        -- 10_AND_EARLIER pp.oid, case when pp.proisagg then 'a' else 'f' end as prokind
+      from pg_proc pp
     ),
 routines as (
  SELECT current_database()::information_schema.sql_identifier AS specific_catalog,
