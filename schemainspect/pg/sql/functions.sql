@@ -10,7 +10,7 @@ with extension_oids as (
 routines as (
  SELECT current_database()::information_schema.sql_identifier AS specific_catalog,
     n.nspname::information_schema.sql_identifier AS specific_schema,
-    nameconcatoid(p.proname, p.oid)::information_schema.sql_identifier AS specific_name,
+    --nameconcatoid(p.proname, p.oid)::information_schema.sql_identifier AS specific_name,
     current_database()::information_schema.sql_identifier AS routine_catalog,
     n.nspname::information_schema.sql_identifier AS schema,
     p.proname::information_schema.sql_identifier AS name,
