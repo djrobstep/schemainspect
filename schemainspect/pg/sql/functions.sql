@@ -10,8 +10,8 @@ with extension_oids as (
     pg_proc_pre as (
       select
         pp.*,
-        -- 11_AND_LATER pp.oid
-        -- 10_AND_EARLIER pp.oid, case when pp.proisagg then 'a' else 'f' end as prokind
+        -- 11_AND_LATER pp.oid as p_oid
+        -- 10_AND_EARLIER pp.oid as p_oid, case when pp.proisagg then 'a' else 'f' end as prokind
       from pg_proc pp
     ),
 routines as (
@@ -78,7 +78,7 @@ routines as (
         END::information_schema.character_data AS security_type,
     'NO'::character varying::information_schema.yes_or_no AS as_locator,
     'NO'::character varying::information_schema.yes_or_no AS is_udt_dependent,
-    p.oid as oid,
+    p.p_oid as oid,
     p.proisstrict,
     p.prosecdef,
     p.provolatile,
@@ -94,7 +94,7 @@ routines as (
      JOIN pg_language l ON p.prolang = l.oid
      LEFT JOIN (pg_type t
      JOIN pg_namespace nt ON t.typnamespace = nt.oid) ON p.prorettype = t.oid AND p.prokind <> 'p'::"char"
-  WHERE pg_has_role(p.proowner, 'USAGE'::text) OR has_function_privilege(p.oid, 'EXECUTE'::text)
+  WHERE pg_has_role(p.proowner, 'USAGE'::text) OR has_function_privilege(p.p_oid, 'EXECUTE'::text)
 
 ),
     pgproc as (
