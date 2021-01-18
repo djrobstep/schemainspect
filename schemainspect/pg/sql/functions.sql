@@ -9,8 +9,9 @@ with extension_oids as (
     ),
     pg_proc_pre as (
       select
-        -- 11_AND_LATER *
-        -- 10_AND_EARLIER *, case when p.proisagg then 'a' else 'f' end as prokind
+        *,
+        -- 11_AND_LATER p.oid
+        -- 10_AND_EARLIER p.oid, case when p.proisagg then 'a' else 'f' end as prokind
       from pg_proc
     ),
 routines as (
