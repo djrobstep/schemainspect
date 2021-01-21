@@ -1,3 +1,5 @@
+import textwrap
+
 from collections import OrderedDict as od
 from itertools import groupby
 
@@ -442,7 +444,10 @@ class InspectedIndex(Inspected, TableRelated):
 
     @property
     def create_statement(self):
-        return "{};".format(self.definition)
+        statement = "{};".format(self.definition)
+        if self.constraint and self.constraint.constraint_type == "EXCLUDE":
+            return "select 1; " + textwrap.indent(statement, "-- ")
+        return statement
 
     def __eq__(self, other):
         """
@@ -880,7 +885,7 @@ class InspectedConstraint(Inspected, TableRelated):
 
     @property
     def create_statement(self):
-        if self.index:
+        if self.index and self.constraint_type != "EXCLUDE":
             using_clause = "{} using index {}{}".format(
                 self.constraint_type, self.quoted_name, self.deferrable_subclause
             )

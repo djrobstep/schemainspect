@@ -75,10 +75,16 @@ select
     conname as name,
     relname as table_name,
     pg_get_constraintdef(pg_constraint.oid) as definition,
-    tc.constraint_type as constraint_type,
+    case contype
+        when 'c' then 'CHECK'
+        when 'f' then 'FOREIGN KEY'
+        when 'p' then 'PRIMARY KEY'
+        when 'u' then 'UNIQUE'
+        when 'x' then 'EXCLUDE'
+    end as constraint_type,
     i.name as index,
     e.objid as extension_oid,
-    case when tc.constraint_type = 'FOREIGN KEY' then
+    case when contype = 'f' then
         (
             SELECT nspname
             FROM pg_catalog.pg_class AS c
@@ -87,14 +93,14 @@ select
             WHERE c.oid = confrelid::regclass
         )
     end as foreign_table_schema,
-    case when tc.constraint_type = 'FOREIGN KEY' then
+    case when contype = 'f' then
         (
             select relname
             from pg_catalog.pg_class c
             where c.oid = confrelid::regclass
         )
     end as foreign_table_name,
-    case when tc.constraint_type = 'FOREIGN KEY' then
+    case when contype = 'f' then
         (
             select
                 array_agg(ta.attname order by c.rn)
@@ -106,7 +112,7 @@ select
                 ta.attrelid = conrelid and ta.attnum = c.cn
         )
     else null end as fk_columns_local,
-    case when tc.constraint_type = 'FOREIGN KEY' then
+    case when contype = 'f' then
         (
             select
                 array_agg(ta.attname order by c.rn)
@@ -118,19 +124,15 @@ select
                 ta.attrelid = confrelid and ta.attnum = c.cn
         )
     else null end as fk_columns_foreign,
-    tc.constraint_type = 'FOREIGN KEY' as is_fk,
-    tc.is_deferrable = 'YES' as is_deferrable,
-    tc.initially_deferred = 'YES' as initially_deferred
+    contype = 'f' as is_fk,
+    condeferrable as is_deferrable,
+    condeferred as initially_deferred
 from
     pg_constraint
     INNER JOIN pg_class
         ON conrelid=pg_class.oid
     INNER JOIN pg_namespace
         ON pg_namespace.oid=pg_class.relnamespace
-    inner join information_schema_table_constraints tc
-        on nspname = tc.constraint_schema
-        and conname = tc.constraint_name
-        and relname = tc.table_name
     left outer join indexes i
         on nspname = i.schema
         and conname = i.name
@@ -141,7 +143,7 @@ from
       on er.objid = conrelid
     left outer join extension_rels cr
       on cr.objid = confrelid
-    where true
+    where contype in ('c', 'f', 'p', 'u', 'x')
   -- SKIP_INTERNAL and nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1')
   -- SKIP_INTERNAL and e.objid is null and er.objid is null and cr.objid is null
 order by 1, 3, 2;
