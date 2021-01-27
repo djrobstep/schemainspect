@@ -40,3 +40,24 @@ def test_inheritance(db):
 
         assert parent.dependents == ['"public"."child"']
         assert child.dependent_on == ['"public"."parent"']
+
+
+def test_table_dependency_order(db):
+    with S(db) as s:
+        s.execute(INHERITANCE)
+
+        ii = get_inspector(s)
+
+        dep_order = ii.dependency_order()
+
+        assert list(ii.tables.keys()) == [
+            '"public"."child"',
+            '"public"."normal"',
+            '"public"."parent"',
+        ]
+
+        assert dep_order == [
+            '"public"."parent"',
+            '"public"."normal"',
+            '"public"."child"',
+        ]

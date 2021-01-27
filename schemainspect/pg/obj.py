@@ -1234,6 +1234,11 @@ class PostgreSQL(DBInspector):
             things.update(self.triggers)
 
         for k, x in things.items():
+            dependent_on = list(x.dependent_on)
+
+            if k in self.tables and x.parent_table:
+                dependent_on.append(x.parent_table)
+
             graph[k] = list(x.dependent_on)
 
         if include_fk_deps:
@@ -1250,7 +1255,19 @@ class PostgreSQL(DBInspector):
             graph.update(fk_deps)
 
         ts = TopologicalSorter(graph)
-        ordering = list(ts.static_order())
+
+        ordering = []
+
+        ts.prepare()
+
+        while ts.is_active():
+            items = ts.get_ready()
+
+            itemslist = list(items)
+
+            # itemslist.sort()
+            ordering += itemslist
+            ts.done(*items)
 
         if drop_order:
             ordering.reverse()
