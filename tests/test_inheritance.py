@@ -44,6 +44,10 @@ def test_inheritance(db):
 
 def test_table_dependency_order(db):
     with S(db) as s:
+        i = get_inspector(s)
+
+        if i.pg_version <= 9:
+            return
         s.execute(INHERITANCE)
 
         ii = get_inspector(s)
