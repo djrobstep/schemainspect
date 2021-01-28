@@ -223,7 +223,6 @@ workflows:
   build-then-publish:
     jobs:
       - build
-      - build-py2
       - build-pg11
       - build-pg10
       - build-pg9
