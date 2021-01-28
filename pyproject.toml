@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "schemainspect"
-version = "2.0"
+version = "3.0"
 authors = [ "Robert Lechte <robertlechte@gmail.com>",]
 license = "Unlicense"
 readme = "README.md"
@@ -10,7 +10,7 @@ repository = "https://github.com/djrobstep/schemainspect"
 homepage = "https://github.com/djrobstep/schemainspect"
 
 [tool.poetry.dependencies]
-python = ">=2.7,<4"
+python = ">=3.6,<4"
 six = "*"
 sqlalchemy = "*"
 
