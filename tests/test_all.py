@@ -495,6 +495,19 @@ def asserts_pg(i, has_timescale=False):
     with raises(ValueError):
         tid.change_string_to_enum_statement("t")
 
+    # comments
+    assert len(i.comments) == 2
+    assert (
+        i.comments[
+            'function "public"."films_f"(d date, def_t text, def_d date)'
+        ].create_statement
+        == 'comment on function "public"."films_f"(d date, def_t text, def_d date) is \'films_f comment\';'
+    )
+    assert (
+        i.comments['table "public"."emptytable"'].create_statement
+        == 'comment on table "public"."emptytable" is \'emptytable comment\';'
+    )
+
 
 def test_weird_names(db):
     with S(db) as s:

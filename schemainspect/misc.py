@@ -53,10 +53,12 @@ def unquoted_identifier(identifier, *, schema=None, identity_arguments=None):
     return s
 
 
-def quoted_identifier(identifier, schema=None, identity_arguments=None):
+def quoted_identifier(identifier, schema=None, identity_arguments=None, table=None):
     if identifier is None and schema is not None:
         return '"{}"'.format(schema.replace('"', '""'))
     s = '"{}"'.format(identifier.replace('"', '""'))
+    if table:
+        s = '"{}".{}'.format(table.replace('"', '""'), s)
     if schema:
         s = '"{}".{}'.format(schema.replace('"', '""'), s)
     if identity_arguments is not None:
