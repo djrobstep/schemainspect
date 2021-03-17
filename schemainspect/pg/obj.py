@@ -1431,13 +1431,13 @@ class PostgreSQL(DBInspector):
                 constraint_type=i.constraint_type,
                 table_name=i.table_name,
                 definition=i.definition,
-                index=i.index,
+                index=i['index'],
                 is_fk=i.is_fk,
                 is_deferrable=i.is_deferrable,
                 initially_deferred=i.initially_deferred,
             )
             if constraint.index:
-                index_name = quoted_identifier(i.index, schema=i.schema)
+                index_name = quoted_identifier(constraint.index, schema=i.schema)
                 index = self.indexes[index_name]
                 index.constraint = constraint
                 constraint.index = index
