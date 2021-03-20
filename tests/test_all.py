@@ -235,6 +235,14 @@ def setup_pg_schema(s):
     s.execute("create extension pg_trgm")
     s.execute("create schema otherschema")
     s.execute(
+        """DO $$
+BEGIN
+CREATE ROLE testuser;
+EXCEPTION WHEN duplicate_object THEN RAISE NOTICE '%, skipping', SQLERRM USING ERRCODE = SQLSTATE;
+END
+$$;"""
+    )
+    s.execute(
         """
         CREATE TABLE films (
             code        char(5) CONSTRAINT firstkey PRIMARY KEY,
@@ -267,6 +275,7 @@ def setup_pg_schema(s):
             )
             as $$select 'a'::varchar, '2014-01-01'::date$$
             language sql;
+            grant execute on function films_f(date, text, date) to testuser;
         """
     )
     s.execute("comment on function films_f(date, text, date) is 'films_f comment'")
@@ -446,13 +455,14 @@ def asserts_pg(i, has_timescale=False):
     assert n("films_title_idx") in t.indexes
 
     # privileges
-    g = InspectedPrivilege("table", "public", "films", "select", "postgres")
+    f_films_f = n("films_f")
+    g = InspectedPrivilege("function", "public", "films_f", "execute", "testuser")
     g = i.privileges[g.key]
-    assert g.create_statement == 'grant select on table {} to "postgres";'.format(
-        t_films
+    assert g.create_statement == 'grant execute on function {} to "testuser";'.format(
+        f_films_f
     )
-    assert g.drop_statement == 'revoke select on table {} from "postgres";'.format(
-        t_films
+    assert g.drop_statement == 'revoke execute on function {} from "testuser";'.format(
+        f_films_f
     )
 
     # composite types
