@@ -31,8 +31,10 @@ class AutoRepr(object):  # pragma: no cover
         return not self == other
 
 
-def quoted_identifier(identifier, schema=None, identity_arguments=None):
+def quoted_identifier(identifier, schema=None, identity_arguments=None, table=None):
     s = '"{}"'.format(identifier.replace('"', '""'))
+    if table:
+        s = '"{}".{}'.format(table.replace('"', '""'), s)
     if schema:
         s = '"{}".{}'.format(schema.replace('"', '""'), s)
     if identity_arguments is not None:
