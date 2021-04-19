@@ -436,9 +436,12 @@ class InspectedIndex(Inspected, TableRelated):
 
     def __eq__(self, other):
         """
-        :type other: InspectedIndex
+        :type other: Optional[InspectedIndex]
         :rtype: bool
         """
+        if other is None:  # sometimes the other index doesn't exist
+            return False
+        
         equalities = (
             self.name == other.name,
             self.schema == other.schema,
