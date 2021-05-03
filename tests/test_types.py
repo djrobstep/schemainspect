@@ -76,12 +76,12 @@ create domain "public"."us_postal_code"
 as text
 null
 {}
-
+;
 """.format(
                 CHECK
             )
         )
-        assert postal.drop_statement == """drop domain "public"."us_postal_code";"""
+        assert postal.drop_statement == """drop domain if exists "public"."us_postal_code";"""
 
         postal.name = "postal2"
         s.execute(postal.create_statement)

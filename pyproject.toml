@@ -22,7 +22,6 @@ pytest-clarity = {version=">=0.3.0-alpha.0", python=">=3.5,<4"}
 psycopg2-binary = "*"
 flake8 = "*"
 isort = {version=">=5", python=">=3.6,<4"}
-migra = "*"
 black = { version = ">=19.10b0", python=">=3.6" }
 
 [tool.poetry.scripts]

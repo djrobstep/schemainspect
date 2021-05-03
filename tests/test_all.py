@@ -451,7 +451,20 @@ def asserts_pg(i, has_timescale=False):
     assert g.create_statement == 'grant select on table {} to "postgres";'.format(
         t_films
     )
-    assert g.drop_statement == 'revoke select on table {} from "postgres";'.format(
+    print(g.drop_statement)
+
+    assert g.drop_statement == """DO
+$$
+    BEGIN
+        IF (SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_name = 'films'
+        ) THEN
+            REVOKE select on table {} from "postgres";
+        END IF;
+    END
+$$;""".format(
         t_films
     )
 

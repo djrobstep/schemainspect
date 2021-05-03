@@ -711,14 +711,14 @@ class InspectedDomain(Inspected):
 
     @property
     def drop_statement(self):
-        return "drop domain {};".format(self.signature)
+        return "drop domain if exists {};".format(self.signature)
 
     @property
     def create_statement(self):
         T = """\
 create domain {name}
 as {_type}
-{collation}{default}{nullable}{check}
+{collation}{default}{nullable}{check};
 """
 
         sql = T.format(
@@ -913,7 +913,20 @@ class InspectedPrivilege(Inspected):
 
     @property
     def drop_statement(self):
-        return "revoke {} on {} {} from {};".format(
+        return """DO
+$$
+    BEGIN
+        IF (SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = '{}'
+              AND table_name = '{}'
+        ) THEN
+            REVOKE {} on {} {} from {};
+        END IF;
+    END
+$$;""".format(
+            self.schema,
+            self.name,
             self.privilege,
             self.object_type,
             self.quoted_full_name,
@@ -1643,17 +1656,17 @@ class PostgreSQL(DBInspector):
         ]  # type: list[InspectedComment]
         self.comments = od((t.key, t) for t in comments)
 
-    def filter_schema(self, schema=None, exclude_schema=None):
-        if schema and exclude_schema:
+    def filter_schema(self, include_schema=None, exclude_schema=None):
+        if include_schema and exclude_schema:
             raise ValueError("Can only have schema or exclude schema, not both")
 
         def equal_to_schema(x):
-            return x.schema == schema
+            return x.schema in include_schema
 
         def not_equal_to_exclude_schema(x):
-            return x.schema != exclude_schema
+            return x.schema not in exclude_schema
 
-        if schema:
+        if include_schema:
             comparator = equal_to_schema
         elif exclude_schema:
             comparator = not_equal_to_exclude_schema
@@ -1691,8 +1704,8 @@ class PostgreSQL(DBInspector):
 
         return d
 
-    def one_schema(self, schema):
-        self.filter_schema(schema=schema)
+    def include_schema(self, schema):
+        self.filter_schema(include_schema=schema)
 
     def exclude_schema(self, schema):
         self.filter_schema(exclude_schema=schema)

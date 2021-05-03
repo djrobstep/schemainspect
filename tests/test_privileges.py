@@ -20,6 +20,17 @@ def test_inspected_privilege():
     )
     assert (
         b.drop_statement
-        == 'revoke execute on function "schema"."test_function" from "test_user";'
+        == """DO
+$$
+    BEGIN
+        IF (SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = 'schema'
+              AND table_name = 'test_function'
+        ) THEN
+            REVOKE execute on function "schema"."test_function" from "test_user";
+        END IF;
+    END
+$$;"""
     )
     assert a.key == ("table", '"public"."test_table"', "test_user", "select")
