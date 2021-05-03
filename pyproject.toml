@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "schemainspect"
-version = "3.0"
+version = "3.0.1"
 authors = [ "Robert Lechte <robertlechte@gmail.com>",]
 license = "Unlicense"
 readme = "README.md"
