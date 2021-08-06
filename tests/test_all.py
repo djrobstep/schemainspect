@@ -248,6 +248,7 @@ def setup_pg_schema(s):
         grant select, update, delete, insert on table films to postgres;
     """
     )
+    s.execute("comment on constraint firstkey on films is E'a \\'constraint\\' comment'")
     s.execute("""CREATE VIEW v_films AS (select * from films)""")
     s.execute("""CREATE VIEW v_films2 AS (select * from v_films)""")
     s.execute(
@@ -499,7 +500,7 @@ $$;""".format(
         tid.change_string_to_enum_statement("t")
 
     # comments
-    assert len(i.comments) == 2
+    assert len(i.comments) == 3
     assert (
         i.comments[
             'function "public"."films_f"(d date, def_t text, def_d date)'
@@ -507,8 +508,22 @@ $$;""".format(
         == 'comment on function "public"."films_f"(d date, def_t text, def_d date) is \'films_f comment\';'
     )
     assert (
+        i.comments[
+            'function "public"."films_f"(d date, def_t text, def_d date)'
+        ].drop_statement
+        == 'comment on function "public"."films_f"(d date, def_t text, def_d date) is null;'
+    )
+    assert (
         i.comments['table "public"."emptytable"'].create_statement
         == 'comment on table "public"."emptytable" is \'emptytable comment\';'
+    )
+    assert (
+        i.comments['constraint "public"."films"."firstkey"'].create_statement
+        == """comment on constraint "firstkey" on "public"."films" is 'a ''constraint'' comment';"""
+    )
+    assert (
+        i.comments['constraint "public"."films"."firstkey"'].drop_statement
+        == """comment on constraint "firstkey" on "public"."films" is null;"""
     )
 
 

@@ -51,4 +51,20 @@ from
 where
     n.nspname <> 'pg_catalog'
     and n.nspname <> 'information_schema'
-    and pg_catalog.col_description(c.oid, a.attnum) is not null;
+    and pg_catalog.col_description(c.oid, a.attnum) is not null
+union all
+select
+    'constraint',
+    n.nspname,
+    c.relname,
+    con.conname,
+    NULL,
+    pg_catalog.obj_description(con.oid, 'pg_constraint')
+from
+    pg_catalog.pg_constraint con
+        join pg_catalog.pg_class c on c.oid = con.conrelid
+        join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+where
+  n.nspname <> 'pg_catalog'
+  and n.nspname <> 'information_schema'
+  and pg_catalog.obj_description(con.oid, 'pg_constraint') is not null;

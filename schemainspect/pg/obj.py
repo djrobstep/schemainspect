@@ -977,12 +977,30 @@ class InspectedComment(Inspected):
 
     @property
     def drop_statement(self):
+        if self.object_type == "constraint":
+            return "comment on {} {} on {} is null;".format(
+                self.object_type,
+                quoted_identifier(self.name),
+                quoted_identifier(self.table, schema=self.schema)
+            )
         return "comment on {} {} is null;".format(self.object_type, self._identifier)
 
     @property
     def create_statement(self):
+        # Must explicitly escape single quotes in comments to generate valid SQL
+        escaped_comment = self.comment.replace("'", "''")
+        if self.object_type == "constraint":
+            return "comment on {} {} on {} is '{}';".format(
+                self.object_type,
+                quoted_identifier(self.name),
+                quoted_identifier(self.table, schema=self.schema),
+                escaped_comment
+            )
+
         return "comment on {} {} is '{}';".format(
-            self.object_type, self._identifier, self.comment
+            self.object_type,
+            self._identifier,
+            escaped_comment
         )
 
     @property
