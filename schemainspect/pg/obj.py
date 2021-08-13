@@ -978,12 +978,42 @@ class InspectedComment(Inspected):
     @property
     def drop_statement(self):
         if self.object_type == "constraint":
-            return "comment on {} {} on {} is null;".format(
+            return """DO
+        $$
+            BEGIN
+                IF (SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_schema = '{}'
+                      AND table_name = '{}'
+                ) THEN
+                    comment on {} {} on {} is null;
+                END IF;
+            END
+        $$;""".format(
+                self.schema,
+                self.table,
                 self.object_type,
                 quoted_identifier(self.name),
                 quoted_identifier(self.table, schema=self.schema)
             )
-        return "comment on {} {} is null;".format(self.object_type, self._identifier)
+
+        return """DO
+    $$
+        BEGIN
+            IF (SELECT 1
+                FROM information_schema.tables
+                WHERE table_schema = '{}'
+                  AND table_name = '{}'
+            ) THEN
+                comment on {} {} is null;
+            END IF;
+        END
+    $$;""".format(
+            self.schema,
+            self.table,
+            self.object_type,
+            self._identifier
+        )
 
     @property
     def create_statement(self):

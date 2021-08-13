@@ -511,7 +511,18 @@ $$;""".format(
         i.comments[
             'function "public"."films_f"(d date, def_t text, def_d date)'
         ].drop_statement
-        == 'comment on function "public"."films_f"(d date, def_t text, def_d date) is null;'
+        == """DO
+    $$
+        BEGIN
+            IF (SELECT 1
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_name = 'None'
+            ) THEN
+                comment on function "public"."films_f"(d date, def_t text, def_d date) is null;
+            END IF;
+        END
+    $$;"""
     )
     assert (
         i.comments['table "public"."emptytable"'].create_statement
@@ -523,7 +534,18 @@ $$;""".format(
     )
     assert (
         i.comments['constraint "public"."films"."firstkey"'].drop_statement
-        == """comment on constraint "firstkey" on "public"."films" is null;"""
+        == """DO
+        $$
+            BEGIN
+                IF (SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public'
+                      AND table_name = 'films'
+                ) THEN
+                    comment on constraint "firstkey" on "public"."films" is null;
+                END IF;
+            END
+        $$;"""
     )
 
 
