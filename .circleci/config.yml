@@ -16,7 +16,7 @@ jobs:
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
-      - run: sudo apt-get -y update
+      - run: sudo apt-get -y update --allow-releaseinfo-change
       - run: sudo apt-get install -y postgresql-client
       - run:
           name: create postgres user
@@ -65,7 +65,7 @@ jobs:
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
-      - run: sudo apt-get -y update
+      - run: sudo apt-get -y update --allow-releaseinfo-change
       - run: sudo apt-get install -y postgresql-client
       - run:
           name: create postgres user
@@ -114,7 +114,7 @@ jobs:
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
-      - run: sudo apt-get -y update
+      - run: sudo apt-get -y update --allow-releaseinfo-change
       - run: sudo apt-get install -y postgresql-client
       - run:
           name: create postgres user
@@ -163,7 +163,7 @@ jobs:
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
-      - run: sudo apt-get -y update
+      - run: sudo apt-get -y update --allow-releaseinfo-change
       - run: sudo apt-get install -y postgresql-client
       - run:
           name: create postgres user
