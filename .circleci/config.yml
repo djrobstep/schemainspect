@@ -16,6 +16,7 @@ jobs:
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run: sudo apt-get -y update --allow-releaseinfo-change
       - run: sudo apt-get install -y postgresql-client
       - run:
           name: create postgres user
@@ -23,7 +24,7 @@ jobs:
       - run:
           name: Install poetry
           command: |
-            sudo pip3 install poetry
+            sudo pip3 install poetry>=1.1.8
             poetry config virtualenvs.create false
       - run:
           command: |
@@ -64,6 +65,7 @@ jobs:
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run: sudo apt-get -y update --allow-releaseinfo-change
       - run: sudo apt-get install -y postgresql-client
       - run:
           name: create postgres user
@@ -71,7 +73,7 @@ jobs:
       - run:
           name: Install poetry
           command: |
-            sudo pip3 install poetry
+            sudo pip3 install poetry>=1.1.8
             poetry config virtualenvs.create false
       - run:
           command: |
@@ -112,6 +114,7 @@ jobs:
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run: sudo apt-get -y update --allow-releaseinfo-change
       - run: sudo apt-get install -y postgresql-client
       - run:
           name: create postgres user
@@ -119,7 +122,7 @@ jobs:
       - run:
           name: Install poetry
           command: |
-            sudo pip3 install poetry
+            sudo pip3 install poetry>=1.1.8
             poetry config virtualenvs.create false
       - run:
           command: |
@@ -160,7 +163,7 @@ jobs:
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
-      - run: sudo apt-get -y update
+      - run: sudo apt-get -y update --allow-releaseinfo-change
       - run: sudo apt-get install -y postgresql-client
       - run:
           name: create postgres user
@@ -168,7 +171,7 @@ jobs:
       - run:
           name: Install poetry
           command: |
-            sudo pip3 install poetry>=1.0.0
+            sudo pip3 install poetry>=1.1.8
             poetry config virtualenvs.create false
       - run:
           command: |
@@ -204,7 +207,7 @@ jobs:
       - run:
           name: Install poetry, deps
           command: |
-            sudo pip3 install poetry
+            sudo pip3 install poetry>=1.1.8
             poetry config virtualenvs.create false
             python3 -m venv ~/.venv
             . ~/.venv/bin/activate

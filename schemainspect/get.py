@@ -19,7 +19,13 @@ def get_inspector(x, schema=None, exclude_schema=None):
 
     inspected = ic(c)
     if schema:
-        inspected.one_schema(schema)
+        if isinstance(schema, list):
+            inspected.multiple_schemas(schema)
+        else:
+            inspected.one_schema(schema)
     elif exclude_schema:
-        inspected.exclude_schema(exclude_schema)
+        if isinstance(exclude_schema, list):
+            inspected.exclude_multiple_schemas(exclude_schema)
+        else:
+            inspected.exclude_schema(exclude_schema)
     return inspected
