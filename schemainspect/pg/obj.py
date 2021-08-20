@@ -1582,20 +1582,20 @@ class PostgreSQL(DBInspector):
         ]  # type: list[InspectedType]
         self.domains = od((t.signature, t) for t in domains)
 
-    def filter_schema(self, schema=None, exclude_schema=None):
-        if schema and exclude_schema:
-            raise ValueError("Can only have schema or exclude schema, not both")
+    def filter_schema(self, schemas=None, exclude_schemas=None):
+        if schemas and exclude_schemas:
+            raise ValueError("Can only have included schema(s) or excluded schema(s), not both")
 
-        def equal_to_schema(x):
-            return x.schema == schema
+        def in_schemas(x):
+            return x.schema in schemas
 
-        def not_equal_to_exclude_schema(x):
-            return x.schema != exclude_schema
+        def not_in_exclude_schemas(x):
+            return x.schema not in exclude_schemas
 
-        if schema:
-            comparator = equal_to_schema
-        elif exclude_schema:
-            comparator = not_equal_to_exclude_schema
+        if schemas:
+            comparator = in_schemas
+        elif exclude_schemas:
+            comparator = not_in_exclude_schemas
         else:
             raise ValueError("schema or exclude_schema must be not be none")
 
@@ -1631,10 +1631,16 @@ class PostgreSQL(DBInspector):
         return d
 
     def one_schema(self, schema):
-        self.filter_schema(schema=schema)
+        self.filter_schema(schemas=[schema])
+
+    def multiple_schemas(self, schema):
+        self.filter_schema(schemas=schema)
 
     def exclude_schema(self, schema):
-        self.filter_schema(exclude_schema=schema)
+        self.filter_schema(exclude_schemas=[schema])
+
+    def exclude_multiple_schemas(self, schema):
+        self.filter_schema(exclude_schemas=schema)
 
     def __eq__(self, other):
         """
