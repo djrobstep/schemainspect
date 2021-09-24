@@ -1078,6 +1078,7 @@ class PostgreSQL(DBInspector):
         self.load_functions()
         self.selectables = od()
         self.selectables.update(self.relations)
+        self.selectables.update(self.composite_types)
         self.selectables.update(self.functions)
 
         self.load_privileges()
