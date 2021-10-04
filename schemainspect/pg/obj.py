@@ -363,7 +363,20 @@ class InspectedTrigger(Inspected):
 
     @property
     def create_statement(self):
-        return self.full_definition + ";"
+        status_sql = {
+            'O': 'ENABLE TRIGGER',
+            'D': 'DISABLE TRIGGER',
+            'R': 'ENABLE REPLICA TRIGGER',
+            'A': 'ENABLE ALWAYS TRIGGER'
+        }
+        schema = quoted_identifier(self.schema)
+        table = quoted_identifier(self.table_name)
+        trigger_name = quoted_identifier(self.name)
+        if self.enabled in ('D', 'R', 'A'):
+            table_alter = f'ALTER TABLE {schema}.{table} {status_sql[self.enabled]} {trigger_name}'
+            return self.full_definition + ";\n" + table_alter + ";"
+        else:
+            return self.full_definition + ";"
 
     def __eq__(self, other):
         """
