@@ -41,6 +41,7 @@ def test_view_trigger(db):
         # Triggers on views should not include the ALTER TABLE part of the create statement
         assert 'ALTER TABLE' not in trigger.create_statement()
 
+
 def test_replica_trigger(db):
     with S(db) as s:
         s.execute(BASE)
@@ -64,4 +65,4 @@ def test_replica_trigger(db):
         trigger = i.triggers['"public"."my_table"."table_trigger"']
 
         # Replica trigger needs the ALTER TABLE statement as well as the trigger definition
-        assert 'ALTER TABLE' not in trigger.create_statement()
+        assert 'ALTER TABLE' in trigger.create_statement()
