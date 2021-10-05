@@ -374,9 +374,11 @@ class InspectedTrigger(Inspected):
         schema = quoted_identifier(self.schema)
         table = quoted_identifier(self.table_name)
         trigger_name = quoted_identifier(self.name)
-        table_alter = f'ALTER TABLE {schema}.{table} {status_sql[self.enabled]} {trigger_name}'
-
-        return self.full_definition + ";\n" + table_alter + ";"
+        if self.enabled in ('D', 'R', 'A'):
+            table_alter = f'ALTER TABLE {schema}.{table} {status_sql[self.enabled]} {trigger_name}'
+            return self.full_definition + ";\n" + table_alter + ";"
+        else:
+            return self.full_definition + ";"
 
     def __eq__(self, other):
         """
