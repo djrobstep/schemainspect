@@ -6,6 +6,8 @@ from .misc import AutoRepr, quoted_identifier
 class Inspected(AutoRepr):
     @property
     def quoted_full_name(self):
+        if self.schema == '':
+            return quoted_identifier(self.name)
         return "{}.{}".format(
             quoted_identifier(self.schema), quoted_identifier(self.name)
         )
