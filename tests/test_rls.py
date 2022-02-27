@@ -139,7 +139,7 @@ on "public"."accounts"
 as permissive
 for insert
 to schemainspect_test_role
-with check (manager = (CURRENT_USER)::text);
+with check ((manager = (CURRENT_USER)::text));
 """
         )
 
