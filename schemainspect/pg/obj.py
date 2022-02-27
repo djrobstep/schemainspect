@@ -986,7 +986,7 @@ class InspectedRowPolicy(Inspected, TableRelated):
             qual_clause = ""
 
         if self.withcheck:
-            withcheck_clause = "\nwith check {}".format(self.withcheck)
+            withcheck_clause = "\nwith check ({})".format(self.withcheck)
         else:
             withcheck_clause = ""
 
@@ -1431,7 +1431,7 @@ class PostgreSQL(DBInspector):
                 constraint_type=i.constraint_type,
                 table_name=i.table_name,
                 definition=i.definition,
-                index=i['index'],
+                index=i["index"],
                 is_fk=i.is_fk,
                 is_deferrable=i.is_deferrable,
                 initially_deferred=i.initially_deferred,

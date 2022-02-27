@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "schemainspect"
-version = "3.0"
+version = "3.1"
 authors = [ "Robert Lechte <robertlechte@gmail.com>",]
 license = "Unlicense"
 readme = "README.md"
@@ -10,7 +10,7 @@ repository = "https://github.com/djrobstep/schemainspect"
 homepage = "https://github.com/djrobstep/schemainspect"
 
 [tool.poetry.dependencies]
-python = ">=3.6,<4"
+python = ">=3.7,<4"
 six = "*"
 sqlalchemy = "*"
 
@@ -18,12 +18,12 @@ sqlalchemy = "*"
 sqlbag = ">=0.1.1616028516"
 pytest = {version="*", python=">=3.5,<4"}
 pytest-cov = "*"
-pytest-clarity = {version=">=0.3.0-alpha.0", python=">=3.5,<4"}
+pytest-clarity = {version="*", python=">=3.5,<4"}
 psycopg2-binary = "*"
 flake8 = "*"
-isort = {version=">=5", python=">=3.6,<4"}
+isort = "*"
 migra = "*"
-black = { version = ">=19.10b0", python=">=3.6" }
+black = "*"
 
 [tool.poetry.scripts]
 schemainspect = 'schemainspect:do_command'
