@@ -1,10 +1,10 @@
 version: 2
 jobs:
-  build:
+  build-pg14:
     working_directory: ~/circleci
     docker:
-      - image: circleci/python:3.8.2
-      - image: circleci/postgres:12
+      - image: cimg/python:3.10
+      - image: cimg/postgres:14.1
         environment:
           POSTGRES_USER: circleci
           POSTGRES_DB: circleci
@@ -23,11 +23,110 @@ jobs:
       - run:
           name: Install poetry
           command: |
-            sudo pip3 install poetry
+            python --version
+            python -m pip install -U pip setuptools poetry
             poetry config virtualenvs.create false
       - run:
           command: |
-            python3 -m venv ~/.venv
+            python -m venv ~/.venv
+            . ~/.venv/bin/activate
+
+            poetry install
+      - save_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          paths:
+            - "~/.venv"
+      - run:
+          name: Check formatting
+          command: |
+            . ~/.venv/bin/activate
+            make lint
+      - run:
+          command: |
+            . ~/.venv/bin/activate
+            make test
+      - store_artifacts:
+          path: test-reports/
+          destination: tr1
+
+  build-pg13:
+    working_directory: ~/circleci
+    docker:
+      - image: cimg/python:3.10
+      - image: cimg/postgres:13.5
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_DB: circleci
+          POSTGRES_HOST_AUTH_METHOD: trust
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+      - run:
+          name: Wait for db
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run: sudo apt-get install -y postgresql-client
+      - run:
+          name: create postgres user
+          command: psql postgresql://@localhost/circleci -c 'create role postgres'
+      - run:
+          name: Install poetry
+          command: |
+            python --version
+            python -m pip install -U pip setuptools poetry
+            poetry config virtualenvs.create false
+      - run:
+          command: |
+            python -m venv ~/.venv
+            . ~/.venv/bin/activate
+
+            poetry install
+      - save_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          paths:
+            - "~/.venv"
+      - run:
+          name: Check formatting
+          command: |
+            . ~/.venv/bin/activate
+            make lint
+      - run:
+          command: |
+            . ~/.venv/bin/activate
+            make test
+      - store_artifacts:
+          path: test-reports/
+          destination: tr1
+
+  build-pg12:
+    working_directory: ~/circleci
+    docker:
+      - image: cimg/python:3.10
+      - image: cimg/postgres:12.9
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_DB: circleci
+          POSTGRES_HOST_AUTH_METHOD: trust
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+      - run:
+          name: Wait for db
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run: sudo apt-get install -y postgresql-client
+      - run:
+          name: create postgres user
+          command: psql postgresql://@localhost/circleci -c 'create role postgres'
+      - run:
+          name: Install poetry
+          command: |
+            python --version
+            python -m pip install -U pip setuptools poetry
+            poetry config virtualenvs.create false
+      - run:
+          command: |
+            python -m venv ~/.venv
             . ~/.venv/bin/activate
 
             poetry install
@@ -51,7 +150,7 @@ jobs:
   build-pg11:
     working_directory: ~/circleci
     docker:
-      - image: circleci/python:3.8.2
+      - image: cimg/python:3.10
       - image: circleci/postgres:11
         environment:
           POSTGRES_USER: circleci
@@ -71,11 +170,12 @@ jobs:
       - run:
           name: Install poetry
           command: |
-            sudo pip3 install poetry
+            python --version
+            python -m pip install -U pip setuptools poetry
             poetry config virtualenvs.create false
       - run:
           command: |
-            python3 -m venv ~/.venv
+            python -m venv ~/.venv
             . ~/.venv/bin/activate
 
             poetry install
@@ -99,8 +199,8 @@ jobs:
   build-pg10:
     working_directory: ~/circleci
     docker:
-      - image: circleci/python:3.8.2
-      - image: circleci/postgres:10
+      - image: cimg/python:3.10
+      - image: circleci/postgres:10.19
         environment:
           POSTGRES_USER: circleci
           POSTGRES_DB: circleci
@@ -119,61 +219,14 @@ jobs:
       - run:
           name: Install poetry
           command: |
-            sudo pip3 install poetry
+            python --version
+            python -m pip install -U pip setuptools poetry
             poetry config virtualenvs.create false
       - run:
           command: |
-            python3 -m venv ~/.venv
+            python -m venv ~/.venv
             . ~/.venv/bin/activate
 
-            poetry install
-      - save_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
-          paths:
-            - "~/.venv"
-      - run:
-          name: Check formatting
-          command: |
-            . ~/.venv/bin/activate
-            make lint
-      - run:
-          command: |
-            . ~/.venv/bin/activate
-            make test
-      - store_artifacts:
-          path: test-reports/
-          destination: tr1
-
-  build-pg9:
-    working_directory: ~/circleci
-    docker:
-      - image: circleci/python:3.8.2
-      - image: circleci/postgres:9
-        environment:
-          POSTGRES_USER: circleci
-          POSTGRES_DB: circleci
-          POSTGRES_HOST_AUTH_METHOD: trust
-    steps:
-      - checkout
-      - restore_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
-      - run:
-          name: Wait for db
-          command: dockerize -wait tcp://localhost:5432 -timeout 1m
-      - run: sudo apt-get -y update
-      - run: sudo apt-get install -y postgresql-client
-      - run:
-          name: create postgres user
-          command: psql postgresql://@localhost/circleci -c 'create role postgres'
-      - run:
-          name: Install poetry
-          command: |
-            sudo pip3 install poetry>=1.0.0
-            poetry config virtualenvs.create false
-      - run:
-          command: |
-            python3 -m venv ~/.venv
-            . ~/.venv/bin/activate
             poetry install
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
@@ -195,18 +248,22 @@ jobs:
   publish:
     working_directory: ~/circleci
     docker:
-      - image: circleci/python:3.8.2
+      - image: cimg/python:3.10
     steps:
       - setup_remote_docker
       - checkout
       - restore_cache:
           key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
       - run:
-          name: Install poetry, deps
+          name: Install poetry
           command: |
-            sudo pip3 install poetry
+            python --version
+            python -m pip install -U pip setuptools poetry
             poetry config virtualenvs.create false
-            python3 -m venv ~/.venv
+      - run:
+          name: Install deps
+          command: |
+            python -m venv ~/.venv
             . ~/.venv/bin/activate
             poetry install
       - run:
@@ -222,16 +279,18 @@ workflows:
   version: 2
   build-then-publish:
     jobs:
-      - build
+      - build-pg14
+      - build-pg13
+      - build-pg12
       - build-pg11
       - build-pg10
-      - build-pg9
       - publish:
           requires:
-            - build
+            - build-pg14
+            - build-pg13
+            - build-pg12
             - build-pg11
             - build-pg10
-            - build-pg9
           filters:
             branches:
               only: master

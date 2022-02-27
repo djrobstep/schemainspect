@@ -16,9 +16,9 @@ sqlalchemy = "*"
 
 [tool.poetry.dev-dependencies]
 sqlbag = ">=0.1.1616028516"
-pytest = {version="*", python=">=3.5,<4"}
+pytest = "*"
 pytest-cov = "*"
-pytest-clarity = {version="*", python=">=3.5,<4"}
+pytest-clarity = "*"
 psycopg2-binary = "*"
 flake8 = "*"
 isort = "*"
