@@ -24,6 +24,7 @@ flake8 = "*"
 isort = "*"
 migra = "*"
 black = "*"
+toml = "*"
 
 [tool.poetry.scripts]
 schemainspect = 'schemainspect:do_command'

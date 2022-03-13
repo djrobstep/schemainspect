@@ -30,7 +30,6 @@ jobs:
           command: |
             python -m venv ~/.venv
             . ~/.venv/bin/activate
-
             poetry install
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
@@ -151,7 +150,7 @@ jobs:
     working_directory: ~/circleci
     docker:
       - image: cimg/python:3.10
-      - image: circleci/postgres:11
+      - image: cimg/postgres:11.13
         environment:
           POSTGRES_USER: circleci
           POSTGRES_DB: circleci
@@ -272,8 +271,8 @@ jobs:
             . ~/.venv/bin/activate
             python deploy/vbump.py
             poetry build
-            poetry publish --username $PYPI_USERNAME --password $PYPI_PASSWORD
-
+            poetry config pypi-token.pypi $PYPI_PASSWORD
+            poetry publish
 
 workflows:
   version: 2
