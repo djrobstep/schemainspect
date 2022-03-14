@@ -618,6 +618,61 @@ def test_sequences(db):
         assert owned.quoted_table_and_column_name == '"public"."t"."id"'
 
 
+def test_enums(db):
+    with S(db) as s:
+        s.execute(
+            """
+        create type color as enum ('blue', 'teal', 'eggshell', 'spamshell');
+        """
+        )
+
+        i = get_inspector(s)
+
+        assert len(i.extension_enums) == 0
+        enums = list(i.enums)
+        assert enums == ['"public"."color"']
+
+        color = i.enums['"public"."color"']
+        assert color.name == "color"
+        assert color.schema == "public"
+        assert color.elements == ["blue", "teal", "eggshell", "spamshell"]
+        assert color.pg_version == i.pg_version
+        assert not color.is_extension
+
+
+def test_enums_from_extensions(db):
+    # This test requires an extension defining an enum to be installed.  To run
+    # this test, copy the dummycolor extension files in test/pgxn/ into the
+    # postgres server extension directory.
+    #
+    # :; pgsharedir=$(pg_config --sharedir) && cp tests/pgxn/dummycolor* $pgsharedir/extension/
+    with S(db) as s:
+        try:
+            s.execute(
+                """
+            create schema color;
+            create extension dummycolor schema color;
+            """
+            )
+        except sqlalchemy.exc.OperationalError as e:
+            if "could not open extension control file" in str(e):
+                pytest.skip("color enum dummy extension is not available")
+            raise
+
+        i = get_inspector(s)
+
+        assert len(i.enums) == 0
+        enums = list(i.extension_enums)
+        assert enums == ['"color"."color"']
+
+        color = i.extension_enums['"color"."color"']
+        assert color.name == "color"
+        assert color.schema == "color"
+        assert color.elements == ["blue", "aqua", "eggshell", "seashell"]
+        assert color.pg_version == i.pg_version
+        assert color.is_extension
+
+
 def test_postgres_inspect(db, pytestconfig):
     if pytestconfig.getoption("timescale"):
         pytest.skip("--timescale was specified")

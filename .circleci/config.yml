@@ -64,7 +64,10 @@ jobs:
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
-      - run: sudo apt-get install -y postgresql-client
+      - run: |
+          # avoid trying to install outdated and unavailable distro-info-data package
+          sudo apt-mark hold distro-info-data
+          sudo apt-get install -y --no-install-recommends postgresql-client
       - run:
           name: create postgres user
           command: psql postgresql://@localhost/circleci -c 'create role postgres'

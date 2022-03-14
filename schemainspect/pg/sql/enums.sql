@@ -15,14 +15,14 @@ SELECT
       FROM pg_catalog.pg_enum e
       WHERE e.enumtypid = t.oid
       ORDER BY e.enumsortorder
-  ) as elements
+  ) as elements,
+  e.objid is not null as is_extension
 FROM pg_catalog.pg_type t
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
      left outer join extension_oids e
        on t.oid = e.objid
 WHERE
   t.typcategory = 'E'
-  and e.objid is null
   -- SKIP_INTERNAL and n.nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast')
   -- SKIP_INTERNAL and n.nspname not like 'pg_temp_%' and n.nspname not like 'pg_toast_temp_%'
 ORDER BY 1, 2;

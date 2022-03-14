@@ -555,11 +555,12 @@ class InspectedCollation(Inspected):
 
 
 class InspectedEnum(Inspected):
-    def __init__(self, name, schema, elements, pg_version=None):
+    def __init__(self, name, schema, elements, pg_version=None, is_extension=None):
         self.name = name
         self.schema = schema
         self.elements = elements
         self.pg_version = pg_version
+        self.is_extension = is_extension
         self.dependents = []
         self.dependent_on = []
 
@@ -1182,13 +1183,17 @@ class PostgreSQL(DBInspector):
                         r.dependent_on.append(e_sig)
                         c.enum.dependents.append(k)
 
+                    elif e_sig in self.extension_enums:
+                        r.dependent_on.append(e_sig)
+                        c.enum.dependents.append(k)
+
             if r.parent_table:
                 pt = self.relations[r.parent_table]
                 r.dependent_on.append(r.parent_table)
                 pt.dependents.append(r.signature)
 
     def get_dependency_by_signature(self, signature):
-        things = [self.selectables, self.enums, self.triggers]
+        things = [self.selectables, self.enums, self.extension_enums, self.triggers]
 
         for thing in things:
             try:
@@ -1312,12 +1317,16 @@ class PostgreSQL(DBInspector):
                 schema=i.schema,
                 elements=i.elements,
                 pg_version=self.pg_version,
+                is_extension=i.is_extension,
             )
             for i in q
         ]
-        self.enums = od((i.quoted_full_name, i) for i in enumlist)
-        q = self.c.execute(self.ALL_RELATIONS_QUERY)
+        self.enums = od((i.quoted_full_name, i) for i in enumlist if not i.is_extension)
+        self.extension_enums = od(
+            (i.quoted_full_name, i) for i in enumlist if i.is_extension
+        )
 
+        q = self.c.execute(self.ALL_RELATIONS_QUERY)
         for _, g in groupby(q, lambda x: (x.relationtype, x.schema, x.name)):
             clist = list(g)
             f = clist[0]
@@ -1329,6 +1338,8 @@ class PostgreSQL(DBInspector):
                 quoted_full_name = "{}.{}".format(
                     quoted_identifier(schema), quoted_identifier(name)
                 )
+                if quoted_full_name in self.extension_enums:
+                    return self.extension_enums[quoted_full_name]
                 return self.enums[quoted_full_name]
 
             columns = [
@@ -1648,6 +1659,7 @@ class PostgreSQL(DBInspector):
             and self.relations == other.relations
             and self.sequences == other.sequences
             and self.enums == other.enums
+            and self.extension_enums == other.extension_enums
             and self.constraints == other.constraints
             and self.extensions == other.extensions
             and self.functions == other.functions
