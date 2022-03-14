@@ -1,4 +1,5 @@
 import inspect
+import threading
 
 import six
 from pkg_resources import resource_stream as pkg_resource_stream
@@ -13,15 +14,31 @@ def connection_from_s_or_c(s_or_c):  # pragma: no cover
         return s_or_c.connection()
 
 
+_already_repring = threading.local()
+
+
 @six.python_2_unicode_compatible
 class AutoRepr(object):  # pragma: no cover
     def __repr__(self):
+        try:
+            working_set = _already_repring.working_set
+        except AttributeError:
+            working_set = set()
+            _already_repring.working_set = working_set
+
+        if id(self) in working_set:
+            return "..."
+
         cname = self.__class__.__name__
-        vals = [
-            "{}={}".format(k, repr(v))
-            for k, v in sorted(self.__dict__.items())
-            if not k.startswith("_")
-        ]
+        try:
+            working_set.add(id(self))
+            vals = [
+                "{}={}".format(k, repr(v))
+                for k, v in sorted(self.__dict__.items())
+                if not k.startswith("_")
+            ]
+        finally:
+            working_set.remove(id(self))
         return "{}({})".format(cname, ", ".join(vals))
 
     def __str__(self):
