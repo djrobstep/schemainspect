@@ -4,6 +4,7 @@ import datetime
 from collections import OrderedDict as od
 from copy import deepcopy
 
+import psycopg2
 import pytest
 import six
 import sqlalchemy.dialects.postgresql
@@ -645,3 +646,32 @@ def test_empty():
     assert x.tables == od()
     assert x.relations == od()
     assert type(schemainspect.get_inspector(None)) == NullInspector
+
+
+from contextlib import contextmanager
+
+from psycopg2.extras import NamedTupleCursor
+
+
+@contextmanager
+def transaction_cursor(db):
+    conn = psycopg2.connect(db)
+    try:
+        with conn:
+            with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
+                yield curs
+    finally:
+        conn.close()
+
+
+def test_raw_connection(db):
+    with S(db) as s:
+        setup_pg_schema(s)
+
+    with S(db) as s:
+        i1 = get_inspector(s)
+
+    with transaction_cursor(db) as c:
+        i2 = get_inspector(c)
+
+    assert i1 == i2

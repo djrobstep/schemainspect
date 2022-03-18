@@ -16,6 +16,8 @@ def get_inspector(x, schema=None, exclude_schema=None):
         ic = SUPPORTED[c.dialect.name]
     except KeyError:
         raise NotImplementedError
+    except AttributeError:
+        ic = SUPPORTED["postgresql"]
 
     inspected = ic(c)
     if schema:

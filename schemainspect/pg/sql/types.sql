@@ -19,13 +19,13 @@ SELECT
       THEN CAST ( 'var' AS pg_catalog.text )
     ELSE CAST ( t.typlen AS pg_catalog.text )
   END AS size,
-  pg_catalog.array_to_string (
-    ARRAY(
-      SELECT e.enumlabel
-        FROM pg_catalog.pg_enum e
-        WHERE e.enumtypid = t.oid
-        ORDER BY e.oid ), E'\n'
-    ) AS columns,
+  -- pg_catalog.array_to_string (
+  --   ARRAY(
+  --     SELECT e.enumlabel
+  --       FROM pg_catalog.pg_enum e
+  --       WHERE e.enumtypid = t.oid
+  --       ORDER BY e.oid ), E'\n'
+  --   ) AS columns,
   pg_catalog.obj_description (t.oid, 'pg_type') AS description,
   (array_to_json(array(
     select

@@ -19,13 +19,18 @@ def to_pytype(sqla_dialect, typename):
 class DBInspector(object):
     def __init__(self, c, include_internal=False):
         self.c = c
-        self.engine = self.c.engine
-        self.dialect = self.engine.dialect
+        try:
+            self.engine = self.c.engine
+            self.dialect = self.engine.dialect
+        except AttributeError:
+            self.engine = None
+            self.dialect = "postgresql"
         self.include_internal = include_internal
         self.load_all()
 
     def to_pytype(self, typename):
-        return to_pytype(self.dialect, typename)
+        if self.engine:
+            return to_pytype(self.dialect, typename)
 
 
 class NullInspector(DBInspector):
