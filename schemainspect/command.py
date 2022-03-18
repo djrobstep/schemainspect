@@ -58,9 +58,7 @@ def do_yaml(db_url):
         defn = i.encodeable_definition()
 
     from io import StringIO as sio
-    from pprint import pprint as p
 
-    # p(defn)
     import yaml
 
     x = sio()

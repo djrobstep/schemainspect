@@ -1,12 +1,13 @@
 import datetime
 from collections import OrderedDict as od
+from contextlib import contextmanager
 from copy import deepcopy
 
 import psycopg2
 import pytest
-import six
 import sqlalchemy.dialects.postgresql
 import sqlalchemy.exc
+from psycopg2.extras import NamedTupleCursor
 from pytest import raises
 from sqlbag import S, temporary_database
 
@@ -23,8 +24,6 @@ from schemainspect.pg.obj import (
     InspectedSequence,
 )
 
-if not six.PY2:
-    unicode = str
 T_CREATE = """create table "public"."films" (
     "code" character(5) not null,
     "title" character varying not null,
@@ -644,11 +643,6 @@ def test_empty():
     assert x.tables == od()
     assert x.relations == od()
     assert type(schemainspect.get_inspector(None)) == NullInspector
-
-
-from contextlib import contextmanager
-
-from psycopg2.extras import NamedTupleCursor
 
 
 @contextmanager

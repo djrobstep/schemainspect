@@ -1,4 +1,3 @@
-import inspect
 import sys
 from collections import OrderedDict as od
 from itertools import groupby
