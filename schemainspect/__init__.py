@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from . import pg
 from .command import do_command
 from .get import get_inspector
