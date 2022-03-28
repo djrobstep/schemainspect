@@ -148,7 +148,7 @@ def test_fk_col_order(db):
         fk = [v for v in i.constraints.values() if v.is_fk][0]
 
         if i.pg_version <= 11:
-            assert fk.signature == '"public"."y"."y_d_c_fkey"'
+            assert fk.signature == '"public"."y"."y_d_fkey"'
         else:
             assert fk.signature == '"public"."y"."y_d_c_fkey"'
 
