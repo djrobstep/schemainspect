@@ -55,17 +55,25 @@ select
     case when tc.constraint_type = 'FOREIGN KEY' then
         (
             select
-                array_agg(ta.attname order by ta.attnum)
+                array_agg(ta.attname order by c.rn)
             from
-            pg_attribute ta where ta.attrelid = conrelid and ta.attnum = any(conkey)
+            pg_attribute ta
+            join unnest(conkey) with ordinality c(cn, rn)
+
+            on 
+                ta.attrelid = conrelid and ta.attnum = c.cn
         )
     else null end as fk_columns_local,
     case when tc.constraint_type = 'FOREIGN KEY' then
         (
             select
-                array_agg(fa.attname order by fa.attnum)
+                array_agg(ta.attname order by c.rn)
             from
-            pg_attribute fa where fa.attrelid = confrelid and fa.attnum = any(confkey)
+            pg_attribute ta
+            join unnest(confkey) with ordinality c(cn, rn)
+
+            on 
+                ta.attrelid = confrelid and ta.attnum = c.cn
         )
     else null end as fk_columns_foreign,
     tc.constraint_type = 'FOREIGN KEY' as is_fk,

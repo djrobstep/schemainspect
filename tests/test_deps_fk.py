@@ -123,3 +123,32 @@ def test_fk_info(db):
 
         assert fk.is_fk is True
         assert fk.quoted_full_foreign_table_name == '"other"."emp"'
+
+
+TRICKY_ORDER = """
+
+create table x(a int, b int, primary key(a, b));
+create table y(a int, b int, c int, d int,
+FOREIGN KEY (d, c) REFERENCES x (b,a)
+);
+"""
+
+
+def test_fk_col_order(db):
+    with S(db) as s:
+        i = get_inspector(s)
+
+        if i.pg_version <= 10:
+            return
+
+        s.execute(TRICKY_ORDER)
+
+        i = get_inspector(s)
+        print(i.constraints)
+        fk = i.constraints['"public"."y"."y_d_c_fkey"']
+
+        assert fk.is_fk is True
+        assert fk.quoted_full_foreign_table_name == '"public"."x"'
+
+        assert fk.fk_columns_local == ["d", "c"]
+        assert fk.fk_columns_foreign == ["b", "a"]
