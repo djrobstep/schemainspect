@@ -28,21 +28,21 @@ jobs:
             poetry config virtualenvs.create false
       - run:
           command: |
-            python -m venv ~/.venv
-            . ~/.venv/bin/activate
+            python -m venv ~/.virt
+            . ~/.virt/bin/activate
             poetry install
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
-            - "~/.venv"
+            - "~/.virt"
       - run:
           name: Check formatting
           command: |
-            . ~/.venv/bin/activate
+            . ~/.virt/bin/activate
             make lint
       - run:
           command: |
-            . ~/.venv/bin/activate
+            . ~/.virt/bin/activate
             make test
       - store_artifacts:
           path: test-reports/
@@ -76,22 +76,21 @@ jobs:
             poetry config virtualenvs.create false
       - run:
           command: |
-            python -m venv ~/.venv
-            . ~/.venv/bin/activate
-
+            python -m venv ~/.virt
+            . ~/.virt/bin/activate
             poetry install
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
-            - "~/.venv"
+            - "~/.virt"
       - run:
           name: Check formatting
           command: |
-            . ~/.venv/bin/activate
+            . ~/.virt/bin/activate
             make lint
       - run:
           command: |
-            . ~/.venv/bin/activate
+            . ~/.virt/bin/activate
             make test
       - store_artifacts:
           path: test-reports/
@@ -125,22 +124,21 @@ jobs:
             poetry config virtualenvs.create false
       - run:
           command: |
-            python -m venv ~/.venv
-            . ~/.venv/bin/activate
-
+            python -m venv ~/.virt
+            . ~/.virt/bin/activate
             poetry install
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
-            - "~/.venv"
+            - "~/.virt"
       - run:
           name: Check formatting
           command: |
-            . ~/.venv/bin/activate
+            . ~/.virt/bin/activate
             make lint
       - run:
           command: |
-            . ~/.venv/bin/activate
+            . ~/.virt/bin/activate
             make test
       - store_artifacts:
           path: test-reports/
@@ -174,22 +172,22 @@ jobs:
             poetry config virtualenvs.create false
       - run:
           command: |
-            python -m venv ~/.venv
-            . ~/.venv/bin/activate
+            python -m venv ~/.virt
+            . ~/.virt/bin/activate
 
             poetry install
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
-            - "~/.venv"
+            - "~/.virt"
       - run:
           name: Check formatting
           command: |
-            . ~/.venv/bin/activate
+            . ~/.virt/bin/activate
             make lint
       - run:
           command: |
-            . ~/.venv/bin/activate
+            . ~/.virt/bin/activate
             make test
       - store_artifacts:
           path: test-reports/
@@ -223,22 +221,22 @@ jobs:
             poetry config virtualenvs.create false
       - run:
           command: |
-            python -m venv ~/.venv
-            . ~/.venv/bin/activate
+            python -m venv ~/.virt
+            . ~/.virt/bin/activate
 
             poetry install
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
-            - "~/.venv"
+            - "~/.virt"
       - run:
           name: Check formatting
           command: |
-            . ~/.venv/bin/activate
+            . ~/.virt/bin/activate
             make lint
       - run:
           command: |
-            . ~/.venv/bin/activate
+            . ~/.virt/bin/activate
             make test
       - store_artifacts:
           path: test-reports/
@@ -262,13 +260,13 @@ jobs:
       - run:
           name: Install deps
           command: |
-            python -m venv ~/.venv
-            . ~/.venv/bin/activate
+            python -m venv ~/.virt
+            . ~/.virt/bin/activate
             poetry install
       - run:
           name: Bump version, build, install
           command: |
-            . ~/.venv/bin/activate
+            . ~/.virt/bin/activate
             python deploy/vbump.py
             poetry build
             poetry config pypi-token.pypi $PYPI_PASSWORD
