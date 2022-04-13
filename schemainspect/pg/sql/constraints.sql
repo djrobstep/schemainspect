@@ -60,7 +60,7 @@ select
             pg_attribute ta
             join unnest(conkey) with ordinality c(cn, rn)
 
-            on 
+            on
                 ta.attrelid = conrelid and ta.attnum = c.cn
         )
     else null end as fk_columns_local,
@@ -72,7 +72,7 @@ select
             pg_attribute ta
             join unnest(confkey) with ordinality c(cn, rn)
 
-            on 
+            on
                 ta.attrelid = confrelid and ta.attnum = c.cn
         )
     else null end as fk_columns_foreign,
