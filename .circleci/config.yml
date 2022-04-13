@@ -272,8 +272,34 @@ jobs:
             poetry config pypi-token.pypi $PYPI_PASSWORD
             poetry publish
 
+  pre-commit:
+    working_directory: ~/circleci
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: Install pre-commit
+          command: |
+            python -m pip install -U pip pre-commit
+      - restore_cache:
+          keys:
+            - v1-pre-commit-env-{{ checksum ".pre-commit-config.yaml" }}
+            - v1-pre-commit-env-
+      - run:
+          name: Run pre-commit
+          command: |
+            pre-commit run --show-diff-on-failure --color=always
+      - save_cache:
+          key: v1-pre-commit-env-{{ checksum ".pre-commit-config.yaml" }}
+          paths: ~/.cache/pre-commit
+
 workflows:
   version: 2
+  lint:
+    jobs:
+      - pre-commit
   build-then-publish:
     jobs:
       - build-pg14
