@@ -279,10 +279,18 @@ jobs:
     steps:
       - setup_remote_docker
       - checkout
+      - restore_cache:
+          keys:
+            - v1-pre-commit-pip
       - run:
           name: Install pre-commit
           command: |
             python -m pip install -U pip pre-commit
+      - save_cache:
+          key: v1-pre-commit-pip
+          paths:
+            - .venv
+            - ~/.cache/pip
       - restore_cache:
           keys:
             - v1-pre-commit-env-{{ checksum ".pre-commit-config.yaml" }}
