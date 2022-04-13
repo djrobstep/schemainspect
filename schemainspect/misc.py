@@ -1,7 +1,6 @@
 import inspect
 from reprlib import recursive_repr
 
-import six
 from pkg_resources import resource_stream as pkg_resource_stream
 
 
@@ -17,8 +16,7 @@ def connection_from_s_or_c(s_or_c):  # pragma: no cover
             return s_or_c
 
 
-@six.python_2_unicode_compatible
-class AutoRepr(object):  # pragma: no cover
+class AutoRepr:  # pragma: no cover
     @recursive_repr()
     def __repr__(self):
         done = set()

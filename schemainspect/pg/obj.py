@@ -1,4 +1,3 @@
-import sys
 from collections import OrderedDict as od
 from itertools import groupby
 
@@ -1238,9 +1237,6 @@ class PostgreSQL(DBInspector):
         enums=True,
         include_fk_deps=False,
     ):
-        if sys.version_info < (3, 0):
-            raise NotImplementedError
-
         from schemainspect import TopologicalSorter
 
         graph, things = {}, {}
