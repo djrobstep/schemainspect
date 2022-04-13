@@ -1,5 +1,3 @@
-import sys
-
 from sqlbag import S
 
 from schemainspect import get_inspector
@@ -83,9 +81,6 @@ def test_dep_order(db):
 
         i = get_inspector(s)
 
-        # dependency_order doesn't work in py2
-        if sys.version_info < (3, 0):
-            return
         create_order = i.dependency_order(
             include_fk_deps=True,
         )
