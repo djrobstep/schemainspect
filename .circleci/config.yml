@@ -290,7 +290,7 @@ jobs:
       - run:
           name: Run pre-commit
           command: |
-            python -m pre_commit run --show-diff-on-failure --color=always
+            python -m pre_commit run --show-diff-on-failure --color=always --all-files
       - save_cache:
           key: v1-pre-commit-env-{{ checksum ".pre-commit-config.yaml" }}
           paths: ~/.cache/pre-commit
