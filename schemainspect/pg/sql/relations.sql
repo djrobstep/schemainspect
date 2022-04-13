@@ -5,7 +5,7 @@ with extension_oids as (
       pg_depend d
   WHERE
       d.refclassid = 'pg_extension'::regclass and
-      d.classid = 'pg_class'::regclass 
+      d.classid = 'pg_class'::regclass
 ), enums as (
 
   SELECT
