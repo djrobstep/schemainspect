@@ -363,16 +363,16 @@ class InspectedTrigger(Inspected):
     @property
     def create_statement(self):
         status_sql = {
-            'O': 'ENABLE TRIGGER',
-            'D': 'DISABLE TRIGGER',
-            'R': 'ENABLE REPLICA TRIGGER',
-            'A': 'ENABLE ALWAYS TRIGGER'
+            "O": "ENABLE TRIGGER",
+            "D": "DISABLE TRIGGER",
+            "R": "ENABLE REPLICA TRIGGER",
+            "A": "ENABLE ALWAYS TRIGGER",
         }
         schema = quoted_identifier(self.schema)
         table = quoted_identifier(self.table_name)
         trigger_name = quoted_identifier(self.name)
-        if self.enabled in ('D', 'R', 'A'):
-            table_alter = f'ALTER TABLE {schema}.{table} {status_sql[self.enabled]} {trigger_name}'
+        if self.enabled in ("D", "R", "A"):
+            table_alter = f"ALTER TABLE {schema}.{table} {status_sql[self.enabled]} {trigger_name}"
             return self.full_definition + ";\n" + table_alter + ";"
         else:
             return self.full_definition + ";"
@@ -786,7 +786,7 @@ as {_type}
 
 
 class InspectedExtension(Inspected):
-    def __init__(self, name, schema, version):
+    def __init__(self, name, schema, version=None):
         self.name = name
         self.schema = schema
         self.version = version
@@ -797,12 +797,19 @@ class InspectedExtension(Inspected):
 
     @property
     def create_statement(self):
-        return "create extension if not exists {} with schema {} version '{}';".format(
-            self.quoted_name, self.quoted_schema, self.version
+        if self.version:
+            version_clause = f" version '{self.version}'"
+        else:
+            version_clause = ''
+
+        return "create extension if not exists {} with schema {}{};".format(
+            self.quoted_name, self.quoted_schema, version_clause
         )
 
     @property
     def update_statement(self):
+        if not self.version:
+            return None
         return "alter extension {} update to '{}';".format(
             self.quoted_name, self.version
         )
@@ -817,6 +824,9 @@ class InspectedExtension(Inspected):
             self.version == other.version,
         )
         return all(equalities)
+
+    def unversioned_copy(self):
+        return InspectedExtension(self.name, self.schema)
 
 
 class InspectedConstraint(Inspected, TableRelated):
@@ -1497,6 +1507,14 @@ class PostgreSQL(DBInspector):
             t = each.quoted_full_table_name
             n = each.quoted_full_name
             self.relations[t].constraints[n] = each
+
+    @property
+    def extensions_without_versions(self):
+        return {
+            k: v.unversioned_copy()
+            for k, v in self.extensions.items()
+        }
+
 
     def load_functions(self):
         self.functions = od()

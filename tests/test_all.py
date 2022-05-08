@@ -142,6 +142,18 @@ def test_postgres_objects():
     assert ex == ex2
     ex2.version = "2.1"
     assert ex != ex2
+
+    ex3 = ex2.unversioned_copy()
+    assert ex2 != ex3
+
+    assert ex3.update_statement is None
+
+    assert ex3.drop_statement == 'drop extension if exists "name";'
+    assert (
+        ex3.create_statement
+        == 'create extension if not exists "name" with schema "schema";'
+    )
+
     ix = InspectedIndex(
         name="name",
         schema="schema",
