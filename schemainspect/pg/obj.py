@@ -800,7 +800,7 @@ class InspectedExtension(Inspected):
         if self.version:
             version_clause = f" version '{self.version}'"
         else:
-            version_clause = ''
+            version_clause = ""
 
         return "create extension if not exists {} with schema {}{};".format(
             self.quoted_name, self.quoted_schema, version_clause
@@ -1510,11 +1510,7 @@ class PostgreSQL(DBInspector):
 
     @property
     def extensions_without_versions(self):
-        return {
-            k: v.unversioned_copy()
-            for k, v in self.extensions.items()
-        }
-
+        return {k: v.unversioned_copy() for k, v in self.extensions.items()}
 
     def load_functions(self):
         self.functions = od()
