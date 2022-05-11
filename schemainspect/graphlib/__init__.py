@@ -1,5 +1,7 @@
 __all__ = ["TopologicalSorter", "CycleError"]
 
+from typing import Dict, List, Optional, Set, TypeAlias
+
 _NODE_OUT = -1
 _NODE_DONE = -2
 
@@ -7,7 +9,7 @@ _NODE_DONE = -2
 class _NodeInfo:
     __slots__ = "node", "npredecessors", "successors"
 
-    def __init__(self, node):
+    def __init__(self, node: str):
         # The node this class is augmenting.
         self.node = node
 
@@ -18,7 +20,7 @@ class _NodeInfo:
 
         # List of successor nodes. The list can contain duplicated elements as
         # long as they're all reflected in the successor's npredecessors attribute).
-        self.successors = []
+        self.successors: List[str] = []
 
 
 class CycleError(ValueError):
@@ -35,12 +37,15 @@ class CycleError(ValueError):
     pass
 
 
+Graph: TypeAlias = Dict[str, List[str]]
+
+
 class TopologicalSorter:
     """Provides functionality to topologically sort a graph of hashable nodes"""
 
-    def __init__(self, graph=None):
-        self._node2info = {}
-        self._ready_nodes = None
+    def __init__(self, graph: Optional[Graph] = None):
+        self._node2info: Dict[str, _NodeInfo] = {}
+        self._ready_nodes: Optional[List[str]] = None
         self._npassedout = 0
         self._nfinished = 0
 
@@ -48,14 +53,14 @@ class TopologicalSorter:
             for node, predecessors in graph.items():
                 self.add(node, *predecessors)
 
-    def _get_nodeinfo(self, node):
+    def _get_nodeinfo(self, node: str):
         result = self._node2info.get(node)
 
         if result is None:
             self._node2info[node] = result = _NodeInfo(node)
         return result
 
-    def add(self, node, *predecessors):
+    def add(self, node: str, *predecessors: str):
         """Add a new node and its predecessors to the graph.
 
         Both the *node* and all elements in *predecessors* must be hashable.
@@ -147,7 +152,7 @@ class TopologicalSorter:
     def __bool__(self):
         return self.is_active()
 
-    def done(self, *nodes):
+    def done(self, *nodes: str):
         """Marks a set of nodes returned by "get_ready" as processed.
 
         This method unblocks any successor of each node in *nodes* for being returned
@@ -204,10 +209,10 @@ class TopologicalSorter:
 
     def _find_cycle(self):
         n2i = self._node2info
-        stack = []
-        itstack = []
-        seen = set()
-        node2stacki = {}
+        stack: List[str] = []
+        itstack: List[str] = []
+        seen: Set[str] = set()
+        node2stacki: Dict[str, int] = {}
 
         for node in n2i:
             if node in seen:
