@@ -1,7 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import inspect
-import sys
 from collections import OrderedDict as od
 from itertools import groupby
 
@@ -279,7 +275,8 @@ class InspectedFunction(InspectedSelectable):
 
     @property
     def returntype_is_table(self):
-        return "." in self.returntype
+        if self.returntype:
+            return "." in self.returntype
 
     @property
     def signature(self):
@@ -365,7 +362,20 @@ class InspectedTrigger(Inspected):
 
     @property
     def create_statement(self):
-        return self.full_definition + ";"
+        status_sql = {
+            "O": "ENABLE TRIGGER",
+            "D": "DISABLE TRIGGER",
+            "R": "ENABLE REPLICA TRIGGER",
+            "A": "ENABLE ALWAYS TRIGGER",
+        }
+        schema = quoted_identifier(self.schema)
+        table = quoted_identifier(self.table_name)
+        trigger_name = quoted_identifier(self.name)
+        if self.enabled in ("D", "R", "A"):
+            table_alter = f"ALTER TABLE {schema}.{table} {status_sql[self.enabled]} {trigger_name}"
+            return self.full_definition + ";\n" + table_alter + ";"
+        else:
+            return self.full_definition + ";"
 
     def __eq__(self, other):
         """
@@ -776,7 +786,7 @@ as {_type}
 
 
 class InspectedExtension(Inspected):
-    def __init__(self, name, schema, version):
+    def __init__(self, name, schema, version=None):
         self.name = name
         self.schema = schema
         self.version = version
@@ -787,12 +797,19 @@ class InspectedExtension(Inspected):
 
     @property
     def create_statement(self):
-        return "create extension if not exists {} with schema {} version '{}';".format(
-            self.quoted_name, self.quoted_schema, self.version
+        if self.version:
+            version_clause = f" version '{self.version}'"
+        else:
+            version_clause = ""
+
+        return "create extension if not exists {} with schema {}{};".format(
+            self.quoted_name, self.quoted_schema, version_clause
         )
 
     @property
     def update_statement(self):
+        if not self.version:
+            return None
         return "alter extension {} update to '{}';".format(
             self.quoted_name, self.version
         )
@@ -807,6 +824,9 @@ class InspectedExtension(Inspected):
             self.version == other.version,
         )
         return all(equalities)
+
+    def unversioned_copy(self):
+        return InspectedExtension(self.name, self.schema)
 
 
 class InspectedConstraint(Inspected, TableRelated):
@@ -986,7 +1006,7 @@ class InspectedRowPolicy(Inspected, TableRelated):
             qual_clause = ""
 
         if self.withcheck:
-            withcheck_clause = "\nwith check {}".format(self.withcheck)
+            withcheck_clause = "\nwith check ({})".format(self.withcheck)
         else:
             withcheck_clause = ""
 
@@ -1027,7 +1047,14 @@ PROPS = "schemas relations tables views functions selectables sequences constrai
 
 class PostgreSQL(DBInspector):
     def __init__(self, c, include_internal=False):
-        pg_version = c.dialect.server_version_info[0]
+        self.is_raw_psyco_connection = False
+
+        try:
+            pg_version = c.dialect.server_version_info[0]
+        except AttributeError:
+            pg_version = int(str(c.connection.server_version)[:-4])
+            self.is_raw_psyco_connection = True
+
         self.pg_version = pg_version
 
         def processed(q):
@@ -1037,7 +1064,12 @@ class PostgreSQL(DBInspector):
                 q = q.replace("-- 11_AND_LATER", "")
             else:
                 q = q.replace("-- 10_AND_EARLIER", "")
-            q = text(q)
+
+            if not self.is_raw_psyco_connection:
+                q = text(q)
+
+            else:
+                q = q.replace(r"\:", ":")
             return q
 
         if pg_version <= 9:
@@ -1072,12 +1104,21 @@ class PostgreSQL(DBInspector):
 
         super(PostgreSQL, self).__init__(c, include_internal)
 
+    def execute(self, *args, **kwargs):
+        result = self.c.execute(*args, **kwargs)
+
+        if result is None:
+            return self.c.fetchall()
+        else:
+            return result
+
     def load_all(self):
         self.load_schemas()
         self.load_all_relations()
         self.load_functions()
         self.selectables = od()
         self.selectables.update(self.relations)
+        self.selectables.update(self.composite_types)
         self.selectables.update(self.functions)
 
         self.load_privileges()
@@ -1091,7 +1132,7 @@ class PostgreSQL(DBInspector):
         self.load_deps_all()
 
     def load_schemas(self):
-        q = self.c.execute(self.SCHEMAS_QUERY)
+        q = self.execute(self.SCHEMAS_QUERY)
         schemas = [InspectedSchema(schema=each.schema) for each in q]
         self.schemas = od((schema.schema, schema) for schema in schemas)
 
@@ -1100,7 +1141,7 @@ class PostgreSQL(DBInspector):
             self.rlspolicies = od()
             return
 
-        q = self.c.execute(self.RLSPOLICIES_QUERY)
+        q = self.execute(self.RLSPOLICIES_QUERY)
 
         rlspolicies = [
             InspectedRowPolicy(
@@ -1119,7 +1160,7 @@ class PostgreSQL(DBInspector):
         self.rlspolicies = od((p.key, p) for p in rlspolicies)
 
     def load_collations(self):
-        q = self.c.execute(self.COLLATIONS_QUERY)
+        q = self.execute(self.COLLATIONS_QUERY)
         collations = [
             InspectedCollation(
                 schema=i.schema,
@@ -1135,7 +1176,7 @@ class PostgreSQL(DBInspector):
         self.collations = od((i.quoted_full_name, i) for i in collations)
 
     def load_privileges(self):
-        q = self.c.execute(self.PRIVILEGES_QUERY)
+        q = self.execute(self.PRIVILEGES_QUERY)
         privileges = [
             InspectedPrivilege(
                 object_type=i.object_type,
@@ -1149,7 +1190,7 @@ class PostgreSQL(DBInspector):
         self.privileges = od((i.key, i) for i in privileges)
 
     def load_deps(self):
-        q = self.c.execute(self.DEPS_QUERY)
+        q = self.execute(self.DEPS_QUERY)
 
         self.deps = list(q)
 
@@ -1219,9 +1260,6 @@ class PostgreSQL(DBInspector):
         enums=True,
         include_fk_deps=False,
     ):
-        if sys.version_info < (3, 0):
-            raise NotImplementedError
-
         from schemainspect import TopologicalSorter
 
         graph, things = {}, {}
@@ -1305,7 +1343,7 @@ class PostgreSQL(DBInspector):
         self.materialized_views = od()
         self.composite_types = od()
 
-        q = self.c.execute(self.ENUMS_QUERY)
+        q = self.execute(self.ENUMS_QUERY)
         enumlist = [
             InspectedEnum(
                 name=i.name,
@@ -1316,7 +1354,7 @@ class PostgreSQL(DBInspector):
             for i in q
         ]
         self.enums = od((i.quoted_full_name, i) for i in enumlist)
-        q = self.c.execute(self.ALL_RELATIONS_QUERY)
+        q = self.execute(self.ALL_RELATIONS_QUERY)
 
         for _, g in groupby(q, lambda x: (x.relationtype, x.schema, x.name)):
             clist = list(g)
@@ -1383,7 +1421,7 @@ class PostgreSQL(DBInspector):
         self.relations = od()
         for x in (self.tables, self.views, self.materialized_views):
             self.relations.update(x)
-        q = self.c.execute(self.INDEXES_QUERY)
+        q = self.execute(self.INDEXES_QUERY)
         indexlist = [
             InspectedIndex(
                 name=i.name,
@@ -1408,7 +1446,7 @@ class PostgreSQL(DBInspector):
             for i in q
         ]
         self.indexes = od((i.quoted_full_name, i) for i in indexlist)
-        q = self.c.execute(self.SEQUENCES_QUERY)
+        q = self.execute(self.SEQUENCES_QUERY)
 
         sequencelist = [
             InspectedSequence(
@@ -1420,7 +1458,7 @@ class PostgreSQL(DBInspector):
             for i in q
         ]
         self.sequences = od((i.quoted_full_name, i) for i in sequencelist)
-        q = self.c.execute(self.CONSTRAINTS_QUERY)
+        q = self.execute(self.CONSTRAINTS_QUERY)
 
         constraintlist = []
 
@@ -1431,7 +1469,7 @@ class PostgreSQL(DBInspector):
                 constraint_type=i.constraint_type,
                 table_name=i.table_name,
                 definition=i.definition,
-                index=i['index'],
+                index=getattr(i, "index"),
                 is_fk=i.is_fk,
                 is_deferrable=i.is_deferrable,
                 initially_deferred=i.initially_deferred,
@@ -1453,7 +1491,7 @@ class PostgreSQL(DBInspector):
 
         self.constraints = od((i.quoted_full_name, i) for i in constraintlist)
 
-        q = self.c.execute(self.EXTENSIONS_QUERY)
+        q = self.execute(self.EXTENSIONS_QUERY)
         extensionlist = [
             InspectedExtension(name=i.name, schema=i.schema, version=i.version)
             for i in q
@@ -1470,9 +1508,13 @@ class PostgreSQL(DBInspector):
             n = each.quoted_full_name
             self.relations[t].constraints[n] = each
 
+    @property
+    def extensions_without_versions(self):
+        return {k: v.unversioned_copy() for k, v in self.extensions.items()}
+
     def load_functions(self):
         self.functions = od()
-        q = self.c.execute(self.FUNCTIONS_QUERY)
+        q = self.execute(self.FUNCTIONS_QUERY)
         for _, g in groupby(q, lambda x: (x.schema, x.name, x.identity_arguments)):
             clist = list(g)
             f = clist[0]
@@ -1535,7 +1577,7 @@ class PostgreSQL(DBInspector):
             self.functions[s.quoted_full_name + identity_arguments] = s
 
     def load_triggers(self):
-        q = self.c.execute(self.TRIGGERS_QUERY)
+        q = self.execute(self.TRIGGERS_QUERY)
         triggers = [
             InspectedTrigger(
                 i.name,
@@ -1551,7 +1593,7 @@ class PostgreSQL(DBInspector):
         self.triggers = od((t.signature, t) for t in triggers)
 
     def load_types(self):
-        q = self.c.execute(self.TYPES_QUERY)
+        q = self.execute(self.TYPES_QUERY)
 
         def col(defn):
             return defn["attribute"], defn["type"]
@@ -1562,7 +1604,7 @@ class PostgreSQL(DBInspector):
         self.types = od((t.signature, t) for t in types)
 
     def load_domains(self):
-        q = self.c.execute(self.DOMAINS_QUERY)
+        q = self.execute(self.DOMAINS_QUERY)
 
         def col(defn):
             return defn["attribute"], defn["type"]
@@ -1605,18 +1647,34 @@ class PostgreSQL(DBInspector):
             setattr(self, prop, filtered)
 
     def _as_dicts(self):
-        def obj_to_d(x):
+        done = set()
+
+        def obj_to_d(x, k=None):
+            if id(x) in done:
+                if isinstance(x, (str, bool, int)):
+                    return x
+                elif hasattr(x, "quoted_full_name"):
+                    return x.quoted_full_name
+                return "..."
+            done.add(id(x))
+
             if isinstance(x, dict):
-                return {k: obj_to_d(v) for k, v in x.items()}
+                return {k: obj_to_d(v, k) for k, v in x.items()}
 
             elif isinstance(x, (ColumnInfo, Inspected)):
+
+                def safe_getattr(x, k):
+                    try:
+                        return getattr(x, k)
+                    except NotImplementedError:
+                        return "NOT IMPLEMENTED"
+
                 return {
-                    k: obj_to_d(getattr(x, k))
+                    k: obj_to_d(safe_getattr(x, k), k)
                     for k in dir(x)
-                    if not k.startswith("_") and not inspect.ismethod(getattr(x, k))
+                    if not k.startswith("_") and not callable(safe_getattr(x, k))
                 }
             else:
-
                 return str(x)
 
         d = {}
@@ -1629,6 +1687,20 @@ class PostgreSQL(DBInspector):
             d[prop] = _d
 
         return d
+
+    def encodeable_definition(self):
+        return self._as_dicts()
+
+    def as_yaml(self):
+        from io import StringIO as sio
+
+        import yaml
+
+        s = sio()
+
+        yaml.safe_dump(self.encodeable_definition(), s)
+
+        return s.getvalue()
 
     def one_schema(self, schema):
         self.filter_schema(schema=schema)

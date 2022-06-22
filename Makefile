@@ -23,3 +23,7 @@ fmt:
 
 lint:
 	flake8 .
+
+
+precommit:
+	python -m pre_commit run --show-diff-on-failure --color=always --all-files

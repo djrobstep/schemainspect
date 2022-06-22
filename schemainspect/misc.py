@@ -1,6 +1,6 @@
 import inspect
+from reprlib import recursive_repr
 
-import six
 from pkg_resources import resource_stream as pkg_resource_stream
 
 
@@ -10,18 +10,29 @@ def connection_from_s_or_c(s_or_c):  # pragma: no cover
         return s_or_c
 
     except AttributeError:
-        return s_or_c.connection()
+        try:
+            return s_or_c.connection()
+        except (AttributeError, TypeError):
+            return s_or_c
 
 
-@six.python_2_unicode_compatible
-class AutoRepr(object):  # pragma: no cover
+class AutoRepr:  # pragma: no cover
+    @recursive_repr()
     def __repr__(self):
+        done = set()
+
         cname = self.__class__.__name__
-        vals = [
-            "{}={}".format(k, repr(v))
-            for k, v in sorted(self.__dict__.items())
-            if not k.startswith("_")
-        ]
+
+        vals = []
+        for k in sorted(dir(self)):
+            v = getattr(self, k)
+
+            if not k.startswith("_") and (not callable(v)) and id(v) not in done:
+                done.add(id(v))
+
+                attr = "{}={}".format(k, repr(v))
+
+                vals.append(attr)
         return "{}({})".format(cname, ", ".join(vals))
 
     def __str__(self):
@@ -31,7 +42,20 @@ class AutoRepr(object):  # pragma: no cover
         return not self == other
 
 
+def unquoted_identifier(identifier, *, schema=None, identity_arguments=None):
+    if identifier is None and schema is not None:
+        return schema
+    s = "{}".format(identifier)
+    if schema:
+        s = "{}.{}".format(schema, s)
+    if identity_arguments is not None:
+        s = "{}({})".format(s, identity_arguments)
+    return s
+
+
 def quoted_identifier(identifier, schema=None, identity_arguments=None):
+    if identifier is None and schema is not None:
+        return '"{}"'.format(schema.replace('"', '""'))
     s = '"{}"'.format(identifier.replace('"', '""'))
     if schema:
         s = '"{}".{}'.format(schema.replace('"', '""'), s)

@@ -1,5 +1,3 @@
-import sys
-
 from sqlbag import S
 
 from schemainspect import get_inspector
@@ -83,9 +81,6 @@ def test_dep_order(db):
 
         i = get_inspector(s)
 
-        # dependency_order doesn't work in py2
-        if sys.version_info < (3, 0):
-            return
         create_order = i.dependency_order(
             include_fk_deps=True,
         )
@@ -123,3 +118,37 @@ def test_fk_info(db):
 
         assert fk.is_fk is True
         assert fk.quoted_full_foreign_table_name == '"other"."emp"'
+
+
+TRICKY_ORDER = """
+
+create table x(a int, b int, primary key(a, b));
+create table y(a int, b int, c int, d int,
+FOREIGN KEY (d, c) REFERENCES x (b,a)
+);
+"""
+
+
+def test_fk_col_order(db):
+    with S(db) as s:
+        i = get_inspector(s)
+
+        if i.pg_version <= 10:
+            return
+
+        s.execute(TRICKY_ORDER)
+
+        i = get_inspector(s)
+
+        fk = [v for v in i.constraints.values() if v.is_fk][0]
+
+        if i.pg_version <= 11:
+            assert fk.signature == '"public"."y"."y_d_fkey"'
+        else:
+            assert fk.signature == '"public"."y"."y_d_c_fkey"'
+
+        assert fk.is_fk is True
+        assert fk.quoted_full_foreign_table_name == '"public"."x"'
+
+        assert fk.fk_columns_local == ["d", "c"]
+        assert fk.fk_columns_foreign == ["b", "a"]

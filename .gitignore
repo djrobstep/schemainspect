@@ -38,6 +38,7 @@ nosetests.xml
 .pydevproject
 
 .cache
+.vscode
 
 scratch
 poetry.lock

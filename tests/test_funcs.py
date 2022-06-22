@@ -36,15 +36,25 @@ def test_kinds(db):
             return
         s.execute(PROC)
         i = get_inspector(s)
-        p = i.functions['"public"."proc"(a integer, b integer)']
+
+        if i.pg_version < 14:
+            p = i.functions['"public"."proc"(a integer, b integer)']
+        else:
+            p = i.functions['"public"."proc"(IN a integer, IN b integer)']
 
         assert p.definition == "\nselect a, b;\n"
         assert p.kind == "p"
 
-        assert (
-            p.drop_statement
-            == 'drop procedure if exists "public"."proc"(a integer, b integer);'
-        )
+        if i.pg_version < 14:
+            assert (
+                p.drop_statement
+                == 'drop procedure if exists "public"."proc"(a integer, b integer);'
+            )
+        else:
+            assert (
+                p.drop_statement
+                == 'drop procedure if exists "public"."proc"(IN a integer, IN b integer);'
+            )
 
 
 def test_long_identifiers(db):

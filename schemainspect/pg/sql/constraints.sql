@@ -1,4 +1,46 @@
-with extension_oids as (
+with information_schema_table_constraints as (
+select
+    nc.nspname::information_schema.sql_identifier AS constraint_schema,
+    c.conname::information_schema.sql_identifier AS constraint_name,
+    nr.nspname::information_schema.sql_identifier AS table_schema,
+    r.relname::information_schema.sql_identifier AS table_name,
+    CASE c.contype
+        WHEN 'c'::"char" THEN 'CHECK'::text
+        WHEN 'f'::"char" THEN 'FOREIGN KEY'::text
+        WHEN 'p'::"char" THEN 'PRIMARY KEY'::text
+        WHEN 'u'::"char" THEN 'UNIQUE'::text
+        ELSE NULL::text
+    END::information_schema.character_data AS constraint_type,
+    CASE
+        WHEN c.condeferrable THEN 'YES'::text
+        ELSE 'NO'::text
+    END::information_schema.yes_or_no AS is_deferrable,
+    CASE
+        WHEN c.condeferred THEN 'YES'::text
+        ELSE 'NO'::text
+    END::information_schema.yes_or_no AS initially_deferred,
+    'YES'::character varying::information_schema.yes_or_no AS enforced
+   FROM pg_namespace nc,
+    pg_namespace nr,
+    pg_constraint c,
+    pg_class r
+  WHERE nc.oid = c.connamespace AND nr.oid = r.relnamespace AND c.conrelid = r.oid AND (c.contype <> ALL (ARRAY['t'::"char", 'x'::"char"])) AND (r.relkind = ANY (ARRAY['r'::"char", 'p'::"char"])) AND NOT pg_is_other_temp_schema(nr.oid) AND (pg_has_role(r.relowner, 'USAGE'::text) OR has_table_privilege(r.oid, 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER'::text) OR has_any_column_privilege(r.oid, 'SELECT, INSERT, UPDATE, REFERENCES'::text))
+UNION ALL
+ SELECT
+    nr.nspname::information_schema.sql_identifier AS constraint_schema,
+    (((((nr.oid::text || '_'::text) || r.oid::text) || '_'::text) || a.attnum::text) || '_not_null'::text)::information_schema.sql_identifier AS constraint_name,
+    nr.nspname::information_schema.sql_identifier AS table_schema,
+    r.relname::information_schema.sql_identifier AS table_name,
+    'CHECK'::character varying::information_schema.character_data AS constraint_type,
+    'NO'::character varying::information_schema.yes_or_no AS is_deferrable,
+    'NO'::character varying::information_schema.yes_or_no AS initially_deferred,
+    'YES'::character varying::information_schema.yes_or_no AS enforced
+   FROM pg_namespace nr,
+    pg_class r,
+    pg_attribute a
+  WHERE nr.oid = r.relnamespace AND r.oid = a.attrelid AND a.attnotnull AND a.attnum > 0 AND NOT a.attisdropped AND (r.relkind = ANY (ARRAY['r'::"char", 'p'::"char"])) AND NOT pg_is_other_temp_schema(nr.oid) AND (pg_has_role(r.relowner, 'USAGE'::text) OR has_table_privilege(r.oid, 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER'::text) OR has_any_column_privilege(r.oid, 'SELECT, INSERT, UPDATE, REFERENCES'::text))
+),
+extension_oids as (
   select
       objid
   from
@@ -24,7 +66,7 @@ with extension_oids as (
     FROM
         pg_indexes
         -- SKIP_INTERNAL where schemaname not in ('pg_catalog', 'information_schema', 'pg_toast')
-				-- SKIP_INTERNAL and schemaname not like 'pg_temp_%' and schemaname not like 'pg_toast_temp_%'
+		-- SKIP_INTERNAL and schemaname not like 'pg_temp_%' and schemaname not like 'pg_toast_temp_%'
     order by
         schemaname, tablename, indexname
 )
@@ -55,17 +97,25 @@ select
     case when tc.constraint_type = 'FOREIGN KEY' then
         (
             select
-                array_agg(ta.attname order by ta.attnum)
+                array_agg(ta.attname order by c.rn)
             from
-            pg_attribute ta where ta.attrelid = conrelid and ta.attnum = any(conkey)
+            pg_attribute ta
+            join unnest(conkey) with ordinality c(cn, rn)
+
+            on
+                ta.attrelid = conrelid and ta.attnum = c.cn
         )
     else null end as fk_columns_local,
     case when tc.constraint_type = 'FOREIGN KEY' then
         (
             select
-                array_agg(fa.attname order by fa.attnum)
+                array_agg(ta.attname order by c.rn)
             from
-            pg_attribute fa where fa.attrelid = confrelid and fa.attnum = any(confkey)
+            pg_attribute ta
+            join unnest(confkey) with ordinality c(cn, rn)
+
+            on
+                ta.attrelid = confrelid and ta.attnum = c.cn
         )
     else null end as fk_columns_foreign,
     tc.constraint_type = 'FOREIGN KEY' as is_fk,
@@ -77,7 +127,7 @@ from
         ON conrelid=pg_class.oid
     INNER JOIN pg_namespace
         ON pg_namespace.oid=pg_class.relnamespace
-    inner join information_schema.table_constraints tc
+    inner join information_schema_table_constraints tc
         on nspname = tc.constraint_schema
         and conname = tc.constraint_name
         and relname = tc.table_name

@@ -1,16 +1,12 @@
 from collections import OrderedDict as od
 
-from .misc import AutoRepr, quoted_identifier
+from .misc import AutoRepr, quoted_identifier, unquoted_identifier
 
 
 class Inspected(AutoRepr):
     @property
     def quoted_full_name(self):
-        if self.schema == '':
-            return quoted_identifier(self.name)
-        return "{}.{}".format(
-            quoted_identifier(self.schema), quoted_identifier(self.name)
-        )
+        return quoted_identifier(self.name, schema=self.schema)
 
     @property
     def signature(self):
@@ -18,7 +14,7 @@ class Inspected(AutoRepr):
 
     @property
     def unquoted_full_name(self):
-        return "{}.{}".format(self.schema, self.name)
+        return unquoted_identifier(self.name, schema=self.schema)
 
     @property
     def quoted_name(self):
@@ -76,7 +72,6 @@ class ColumnInfo(AutoRepr):
             self.name == other.name
             and self.dbtype == other.dbtype
             and self.dbtypestr == other.dbtypestr
-            and self.pytype == other.pytype
             and self.default == other.default
             and self.not_null == other.not_null
             and self.enum == other.enum

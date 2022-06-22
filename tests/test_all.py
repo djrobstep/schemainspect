@@ -1,13 +1,13 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import datetime
 from collections import OrderedDict as od
+from contextlib import contextmanager
 from copy import deepcopy
 
+import psycopg2
 import pytest
-import six
 import sqlalchemy.dialects.postgresql
 import sqlalchemy.exc
+from psycopg2.extras import NamedTupleCursor
 from pytest import raises
 from sqlbag import S, temporary_database
 
@@ -24,8 +24,6 @@ from schemainspect.pg.obj import (
     InspectedSequence,
 )
 
-if not six.PY2:
-    unicode = str
 T_CREATE = """create table "public"."films" (
     "code" character(5) not null,
     "title" character varying not null,
@@ -144,6 +142,18 @@ def test_postgres_objects():
     assert ex == ex2
     ex2.version = "2.1"
     assert ex != ex2
+
+    ex3 = ex2.unversioned_copy()
+    assert ex2 != ex3
+
+    assert ex3.update_statement is None
+
+    assert ex3.drop_statement == 'drop extension if exists "name";'
+    assert (
+        ex3.create_statement
+        == 'create extension if not exists "name" with schema "schema";'
+    )
+
     ix = InspectedIndex(
         name="name",
         schema="schema",
@@ -645,3 +655,27 @@ def test_empty():
     assert x.tables == od()
     assert x.relations == od()
     assert type(schemainspect.get_inspector(None)) == NullInspector
+
+
+@contextmanager
+def transaction_cursor(db):
+    conn = psycopg2.connect(db)
+    try:
+        with conn:
+            with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
+                yield curs
+    finally:
+        conn.close()
+
+
+def test_raw_connection(db):
+    with S(db) as s:
+        setup_pg_schema(s)
+
+    with S(db) as s:
+        i1 = get_inspector(s)
+
+    with transaction_cursor(db) as c:
+        i2 = get_inspector(c)
+
+    assert i1 == i2
