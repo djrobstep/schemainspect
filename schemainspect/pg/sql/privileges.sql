@@ -21,6 +21,7 @@ from
              where attrelid = c.oid and not attisdropped and attacl is not null ) acl
 where
     acl.grantee != acl.grantor
+    and acl.grantee != 0    
     and c.relkind in ('r', 'v', 'm', 'S', 'f', 'p')
 -- SKIP_INTERNAL    and nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast')
 -- SKIP_INTERNAL    and nspname not like 'pg_temp_%' and nspname not like 'pg_toast_temp_%'
