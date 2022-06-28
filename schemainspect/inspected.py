@@ -7,7 +7,7 @@ class Inspected(AutoRepr):
     @property
     def quoted_full_name(self):
         if self.schema == "":
-            return quoted_identifier(self.name)        
+            return quoted_identifier(self.name)
         return quoted_identifier(self.name, schema=self.schema)
 
     @property

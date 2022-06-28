@@ -1,11 +1,11 @@
 select
-    n.nspname as schema, 
+    n.nspname as schema,
     c.relname as name,
     case
         when c.relkind in ('r', 'v', 'm', 'f', 'p') then 'table'
         when c.relkind = 'S' then 'sequence'
-        else null end as object_type, 
-    pg_get_userbyid(acl.grantee) as "user", 
+        else null end as object_type,
+    pg_get_userbyid(acl.grantee) as "user",
     acl.privilege
 from
     pg_catalog.pg_class c
@@ -21,7 +21,7 @@ from
              where attrelid = c.oid and not attisdropped and attacl is not null ) acl
 where
     acl.grantee != acl.grantor
-    and acl.grantee != 0    
+    and acl.grantee != 0
     and c.relkind in ('r', 'v', 'm', 'S', 'f', 'p')
 -- SKIP_INTERNAL    and nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast')
 -- SKIP_INTERNAL    and nspname not like 'pg_temp_%' and nspname not like 'pg_toast_temp_%'
@@ -39,7 +39,7 @@ where
 -- SKIP_INTERNAL    and routine_schema not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast')
 -- SKIP_INTERNAL    and routine_schema not like 'pg_temp_%' and routine_schema not like 'pg_toast_temp_%'
 union
-select  
+select
     '' as schema,
     n.nspname as name,
     'schema' as object_type,
@@ -54,7 +54,7 @@ from pg_catalog.pg_namespace n,
                  pg_catalog.pg_attribute a
                  cross join aclexplode(a.attacl) aclx
              where attrelid = n.oid and not attisdropped and attacl is not null ) acl
-where 
+where
     privilege != 'CREATE'
     and acl.grantor != acl.grantee
     and acl.grantee != 0

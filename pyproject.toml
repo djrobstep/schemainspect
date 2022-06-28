@@ -24,9 +24,14 @@ isort = "5.10.1"
 migra = "*"
 black = "22.3.0"
 toml = "*"
+pre-commit = "*"
 
 [tool.poetry.scripts]
 schemainspect = 'schemainspect:do_command'
 
 [tool.isort]
 profile = "black"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
