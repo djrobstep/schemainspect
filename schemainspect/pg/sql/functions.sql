@@ -207,6 +207,7 @@ unnested as (
             p.extension_oid as extension_oid,
             pg_get_function_result(p.oid) as result_string,
             pg_get_function_identity_arguments(p.oid) as identity_arguments,
+            pg_get_function_arguments(p.oid) as function_arguments,
             pg_catalog.obj_description(p.oid) as comment
         FROM
           unnested p

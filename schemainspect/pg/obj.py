@@ -246,6 +246,7 @@ class InspectedFunction(InspectedSelectable):
         strictness,
         security_type,
         identity_arguments,
+        function_arguments,
         result_string,
         language,
         full_definition,
@@ -254,6 +255,7 @@ class InspectedFunction(InspectedSelectable):
         kind,
     ):
         self.identity_arguments = identity_arguments
+        self.function_arguments = function_arguments
         self.result_string = result_string
         self.language = language
         self.volatility = volatility
@@ -280,6 +282,10 @@ class InspectedFunction(InspectedSelectable):
 
     @property
     def signature(self):
+        return "{}({})".format(self.quoted_full_name, self.function_arguments)
+
+    @property
+    def identity_signature(self):
         return "{}({})".format(self.quoted_full_name, self.identity_arguments)
 
     @property
@@ -304,11 +310,12 @@ class InspectedFunction(InspectedSelectable):
 
     @property
     def drop_statement(self):
-        return "drop {} if exists {};".format(self.thing, self.signature)
+        return "drop {} if exists {};".format(self.thing, self.identity_signature)
 
     def __eq__(self, other):
         return (
-            self.signature == other.signature
+            self.identity_signature == other.identity_signature
+            and self.signature == other.signature
             and self.result_string == other.result_string
             and self.definition == other.definition
             and self.language == other.language
@@ -1561,6 +1568,7 @@ class PostgreSQL(DBInspector):
                 columns=od((c.name, c) for c in columns),
                 inputs=plist,
                 identity_arguments=f.identity_arguments,
+                function_arguments=f.function_arguments,
                 result_string=f.result_string,
                 language=f.language,
                 definition=f.definition,
