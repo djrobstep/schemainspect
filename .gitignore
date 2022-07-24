@@ -47,3 +47,5 @@ pip-wheel-metadata
 
 tests/test_local_*
 scratch
+
+.vscode
