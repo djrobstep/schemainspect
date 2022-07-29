@@ -1,3 +1,4 @@
+import textwrap
 from collections import OrderedDict as od
 from itertools import groupby
 
@@ -445,11 +446,22 @@ class InspectedIndex(Inspected, TableRelated):
 
     @property
     def drop_statement(self):
-        return "drop index if exists {};".format(self.quoted_full_name)
+        statement = "drop index if exists {};".format(self.quoted_full_name)
+
+        if self.is_exclusion_constraint:
+            return "select 1; " + textwrap.indent(statement, "-- ")
+        return statement
 
     @property
     def create_statement(self):
-        return "{};".format(self.definition)
+        statement = "{};".format(self.definition)
+        if self.is_exclusion_constraint:
+            return "select 1; " + textwrap.indent(statement, "-- ")
+        return statement
+
+    @property
+    def is_exclusion_constraint(self):
+        return self.constraint and self.constraint.constraint_type == "EXCLUDE"
 
     def __eq__(self, other):
         """
@@ -887,16 +899,39 @@ class InspectedConstraint(Inspected, TableRelated):
 
     @property
     def create_statement(self):
-        if self.index:
+        return self.get_create_statement(set_not_valid=False)
+
+    def get_create_statement(self, set_not_valid=False):
+        if self.index and self.constraint_type != "EXCLUDE":
             using_clause = "{} using index {}{}".format(
                 self.constraint_type, self.quoted_name, self.deferrable_subclause
             )
         else:
             using_clause = self.definition
 
+            if set_not_valid:
+                using_clause += " not valid"
+
         USING = "alter table {} add constraint {} {};"
 
         return USING.format(self.quoted_full_table_name, self.quoted_name, using_clause)
+
+    @property
+    def can_use_not_valid(self):
+        return self.constraint_type in ("CHECK", "FOREIGN KEY") and not self.index
+
+    @property
+    def validate_statement(self):
+        if self.can_use_not_valid:
+            VALIDATE = "alter table {} validate constraint {};"
+            return VALIDATE.format(self.quoted_full_table_name, self.quoted_name)
+
+    @property
+    def safer_create_statements(self):
+        if not self.can_use_not_valid:
+            return [self.create_statement]
+
+        return [self.get_create_statement(set_not_valid=True), self.validate_statement]
 
     @property
     def quoted_full_name(self):

@@ -152,3 +152,30 @@ def test_fk_col_order(db):
 
         assert fk.fk_columns_local == ["d", "c"]
         assert fk.fk_columns_foreign == ["b", "a"]
+
+
+def test_separate_validate(db):
+    with S(db) as s:
+        i = get_inspector(s)
+
+        if i.pg_version <= 10:
+            return
+
+        s.execute(TRICKY_ORDER)
+
+        i = get_inspector(s)
+
+        fk = [v for v in i.constraints.values() if v.is_fk][0]
+
+        assert fk.can_use_not_valid
+
+        s.execute(fk.drop_statement)
+
+        for ss in fk.safer_create_statements:
+            s.execute(ss)
+
+        i = get_inspector(s)
+
+        fk2 = [v for v in i.constraints.values() if v.is_fk][0]
+
+        assert fk == fk2
