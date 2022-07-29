@@ -6,7 +6,8 @@ select
         when c.relkind = 'S' then 'sequence'
         else null end as object_type,
     pg_get_userbyid(acl.grantee) as "user",
-    acl.privilege
+    acl.privilege,
+    NULL as postfix
 from
     pg_catalog.pg_class c
     join pg_catalog.pg_namespace n
@@ -31,8 +32,10 @@ select
     routine_name   as name,
     'function'     as object_type,
     grantee        as "user",
-    privilege_type as privilege
-from information_schema.role_routine_grants
+    privilege_type as privilege,
+    FORMAT('(%s)', PG_GET_FUNCTION_IDENTITY_ARGUMENTS(oid)) as postfix
+  FROM information_schema.role_routine_grants g
+  JOIN pg_catalog.pg_proc p ON g.specific_schema::REGNAMESPACE = p.pronamespace::REGNAMESPACE AND g.specific_name = FORMAT('%s_%s', p.proname, p.oid)
 where
     grantor != grantee
     and grantee != 'PUBLIC'
@@ -44,7 +47,8 @@ select
     n.nspname as name,
     'schema' as object_type,
     pg_get_userbyid(acl.grantee) as "user",
-    privilege
+    privilege,
+    NULL as postfix
 from pg_catalog.pg_namespace n,
     lateral (select aclx.*, privilege_type as privilege
              from aclexplode(n.nspacl) aclx

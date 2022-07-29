@@ -926,12 +926,20 @@ class InspectedConstraint(Inspected, TableRelated):
 
 
 class InspectedPrivilege(Inspected):
-    def __init__(self, object_type, schema, name, privilege, target_user):
+    def __init__(self, object_type, schema, name, privilege, target_user, postfix):
         self.schema = schema
         self.object_type = object_type
         self.name = name
         self.privilege = privilege.lower()
         self.target_user = target_user
+        self.postfix = postfix
+
+    @property
+    def quoted_full_name(self):
+        full_name = super().quoted_full_name
+        if self.postfix:
+            full_name += self.postfix
+        return full_name
 
     @property
     def quoted_target_user(self):
@@ -962,12 +970,19 @@ class InspectedPrivilege(Inspected):
             self.name == other.name,
             self.privilege == other.privilege,
             self.target_user == other.target_user,
+            self.postfix == other.postfix,
         )
         return all(equalities)
 
     @property
     def key(self):
-        return self.object_type, self.quoted_full_name, self.target_user, self.privilege
+        return (
+            self.object_type,
+            self.quoted_full_name,
+            self.target_user,
+            self.privilege,
+            self.postfix,
+        )
 
 
 RLS_POLICY_CREATE = """create policy {name}
@@ -1191,6 +1206,7 @@ class PostgreSQL(DBInspector):
                 name=i.name,
                 privilege=i.privilege,
                 target_user=i.user,
+                postfix=i.postfix,
             )
             for i in q
         ]

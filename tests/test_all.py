@@ -456,7 +456,7 @@ def asserts_pg(i, has_timescale=False):
     assert n("films_title_idx") in t.indexes
 
     # privileges
-    g = InspectedPrivilege("table", "public", "films", "select", "postgres")
+    g = InspectedPrivilege("table", "public", "films", "select", "postgres", None)
     g = i.privileges[g.key]
     assert g.create_statement == 'grant select on table {} to "postgres";'.format(
         t_films
