@@ -1,8 +1,6 @@
 import argparse
 import sys
 
-from sqlbag import S
-
 from .get import get_inspector
 from .misc import quoted_identifier
 from .tableformat import t
@@ -25,6 +23,8 @@ def parse_args(args):
 
 
 def do_deps(db_url):
+    from sqlbag import S
+
     with S(db_url) as s:
         i = get_inspector(s)
         deps = i.deps
@@ -53,6 +53,8 @@ def do_deps(db_url):
 
 
 def do_yaml(db_url):
+    from sqlbag import S
+
     with S(db_url) as s:
         i = get_inspector(s)
         defn = i.encodeable_definition()

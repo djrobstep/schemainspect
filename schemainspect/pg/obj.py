@@ -2,8 +2,6 @@ import textwrap
 from collections import OrderedDict as od
 from itertools import groupby
 
-from sqlalchemy import text
-
 from ..inspected import ColumnInfo, Inspected
 from ..inspected import InspectedSelectable as BaseInspectedSelectable
 from ..inspected import TableRelated
@@ -1101,6 +1099,8 @@ class PostgreSQL(DBInspector):
                 q = q.replace("-- 10_AND_EARLIER", "")
 
             if not self.is_raw_psyco_connection:
+                from sqlalchemy import text
+
                 q = text(q)
 
             else:
