@@ -80,6 +80,13 @@ with check (manager = (CURRENT_USER)::text);
                 schemainspect_test_role=schemainspect_test_role
             )
         )
+
+        i = get_inspector(s, schema="otherschema")
+
+        assert not i.rlspolicies
+        i = get_inspector(s, schema="public")
+        assert i.rlspolicies
+
         i = get_inspector(s)
 
         pname = '"public"."accounts"."account_managers"'

@@ -1075,7 +1075,7 @@ class InspectedRowPolicy(Inspected, TableRelated):
         return all(equalities)
 
 
-PROPS = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations triggers"
+PROPS = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations triggers rlspolicies"
 
 
 class PostgreSQL(DBInspector):
