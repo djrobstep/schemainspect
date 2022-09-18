@@ -12,7 +12,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          key: deps2-{{ .Branch }}-{{ checksum "pyproject.toml" }}
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
@@ -32,7 +32,7 @@ jobs:
             . ~/.virt/bin/activate
             poetry install
       - save_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          key: deps2-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
             - "~/.virt"
       - run:
@@ -60,7 +60,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          key: deps2-{{ .Branch }}-{{ checksum "pyproject.toml" }}
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
@@ -80,7 +80,7 @@ jobs:
             . ~/.virt/bin/activate
             poetry install
       - save_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          key: deps2-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
             - "~/.virt"
       - run:
@@ -108,7 +108,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          key: deps2-{{ .Branch }}-{{ checksum "pyproject.toml" }}
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
@@ -128,7 +128,7 @@ jobs:
             . ~/.virt/bin/activate
             poetry install
       - save_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          key: deps2-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
             - "~/.virt"
       - run:
@@ -156,7 +156,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          key: deps2-{{ .Branch }}-{{ checksum "pyproject.toml" }}
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
@@ -177,7 +177,7 @@ jobs:
 
             poetry install
       - save_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          key: deps2-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
             - "~/.virt"
       - run:
@@ -205,7 +205,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          key: deps2-{{ .Branch }}-{{ checksum "pyproject.toml" }}
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
@@ -226,7 +226,7 @@ jobs:
 
             poetry install
       - save_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          key: deps2-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
             - "~/.virt"
       - run:
@@ -250,7 +250,7 @@ jobs:
       - setup_remote_docker
       - checkout
       - restore_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          key: deps2-{{ .Branch }}-{{ checksum "pyproject.toml" }}
       - run:
           name: Install poetry
           command: |
