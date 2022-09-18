@@ -1402,7 +1402,8 @@ class PostgreSQL(DBInspector):
                 quoted_full_name = "{}.{}".format(
                     quoted_identifier(schema), quoted_identifier(name)
                 )
-                return self.enums[quoted_full_name]
+
+                return self.enums.get(quoted_full_name)
 
             columns = [
                 ColumnInfo(
