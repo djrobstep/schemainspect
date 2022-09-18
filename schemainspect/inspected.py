@@ -52,6 +52,7 @@ class ColumnInfo(AutoRepr):
         is_identity_always=False,
         is_generated=False,
         is_inherited=False,
+        can_drop_generated=False,
     ):
         self.name = name or ""
         self.dbtype = dbtype
@@ -66,6 +67,7 @@ class ColumnInfo(AutoRepr):
         self.is_identity_always = is_identity_always
         self.is_generated = is_generated
         self.is_inherited = is_inherited
+        self.can_drop_generated = can_drop_generated
 
     def __eq__(self, other):
         return (
@@ -109,7 +111,7 @@ class ColumnInfo(AutoRepr):
         )
 
         if default_changed:
-            clauses.append(self.alter_default_clause)
+            clauses.append(self.alter_default_clause_or_generated(other))
 
         if notnull_added:
             clauses.append(self.alter_not_null_clause)
@@ -214,6 +216,17 @@ class ColumnInfo(AutoRepr):
             alter = "alter column {} set default {}".format(
                 self.quoted_name, self.default
             )
+        else:
+            alter = "alter column {} drop default".format(self.quoted_name)
+        return alter
+
+    def alter_default_clause_or_generated(self, other):
+        if self.default:
+            alter = "alter column {} set default {}".format(
+                self.quoted_name, self.default
+            )
+        elif other.is_generated and not self.is_generated:
+            alter = "alter column {} drop expression".format(self.quoted_name)
         else:
             alter = "alter column {} drop default".format(self.quoted_name)
         return alter
