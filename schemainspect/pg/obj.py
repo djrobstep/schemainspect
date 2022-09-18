@@ -472,11 +472,9 @@ class InspectedIndex(Inspected, TableRelated):
             self.is_exclusion == other.is_exclusion,
             self.is_immediate == other.is_immediate,
             self.is_clustered == other.is_clustered,
-            self.key_collations == other.key_collations,
             self.key_expressions == other.key_expressions,
             self.partial_predicate == other.partial_predicate,
-            self.algorithm == other.algorithm
-            # self.constraint == other.constraint
+            self.algorithm == other.algorithm,
         )
         return all(equalities)
 
