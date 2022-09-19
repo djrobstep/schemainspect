@@ -1236,8 +1236,12 @@ class PostgreSQL(DBInspector):
             )
             self.selectables[x].dependent_on.append(x_dependent_on)
             self.selectables[x].dependent_on.sort()
-            self.selectables[x_dependent_on].dependents.append(x)
-            self.selectables[x_dependent_on].dependents.sort()
+
+            try:
+                self.selectables[x_dependent_on].dependents.append(x)
+                self.selectables[x_dependent_on].dependents.sort()
+            except LookupError:
+                pass
 
         for k, t in self.triggers.items():
             for dep_name in t.dependent_on:
