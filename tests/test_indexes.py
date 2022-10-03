@@ -74,6 +74,25 @@ CREATE UNIQUE INDEX iii_exp ON s.t((lower(id::text)));
 
 """
 
+COLLATIONS = """
+CREATE COLLATION french (locale = 'fr_FR');
+
+CREATE COLLATION german (locale = 'de_DE');
+
+CREATE TABLE test1c (
+    id integer,
+    content varchar COLLATE "french"
+);
+
+CREATE INDEX i ON test1c (id);
+
+CREATE INDEX i_fr ON test1c (content);
+
+CREATE INDEX i_de ON test1c (content COLLATE "german");
+
+
+"""
+
 
 def test_index_defs(db):
     with S(db) as s:
@@ -110,3 +129,21 @@ def test_index_defs(db):
         assert i.key_columns is None
         assert i.included_columns is None
         assert i.key_expressions == "lower((id)::text)"
+
+
+# def test_collation_names(db):
+#     with S(db) as s:
+#         ii = get_inspector(s)
+
+#         if ii.pg_version <= 10:
+#             return
+#         s.execute(COLLATIONS)
+
+#         ii = get_inspector(s)
+
+#         i = ii.indexes['"public"."i"']  # noqa
+
+#         i_fr = ii.indexes['"public"."i_fr"']  # noqa
+#         i_de = ii.indexes['"public"."i_de"']  # noqa
+
+#         # TODO: Check for collation info once we add it.

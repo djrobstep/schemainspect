@@ -2,8 +2,6 @@ import textwrap
 from collections import OrderedDict as od
 from itertools import groupby
 
-from sqlalchemy import text
-
 from ..inspected import ColumnInfo, Inspected
 from ..inspected import InspectedSelectable as BaseInspectedSelectable
 from ..inspected import TableRelated
@@ -481,11 +479,9 @@ class InspectedIndex(Inspected, TableRelated):
             self.is_exclusion == other.is_exclusion,
             self.is_immediate == other.is_immediate,
             self.is_clustered == other.is_clustered,
-            self.key_collations == other.key_collations,
             self.key_expressions == other.key_expressions,
             self.partial_predicate == other.partial_predicate,
-            self.algorithm == other.algorithm
-            # self.constraint == other.constraint
+            self.algorithm == other.algorithm,
         )
         return all(equalities)
 
@@ -1099,7 +1095,7 @@ class InspectedRowPolicy(Inspected, TableRelated):
         return all(equalities)
 
 
-PROPS = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations triggers"
+PROPS = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations triggers rlspolicies"
 
 
 class PostgreSQL(DBInspector):
@@ -1123,6 +1119,8 @@ class PostgreSQL(DBInspector):
                 q = q.replace("-- 10_AND_EARLIER", "")
 
             if not self.is_raw_psyco_connection:
+                from sqlalchemy import text
+
                 q = text(q)
 
             else:
@@ -1261,8 +1259,12 @@ class PostgreSQL(DBInspector):
             )
             self.selectables[x].dependent_on.append(x_dependent_on)
             self.selectables[x].dependent_on.sort()
-            self.selectables[x_dependent_on].dependents.append(x)
-            self.selectables[x_dependent_on].dependents.sort()
+
+            try:
+                self.selectables[x_dependent_on].dependents.append(x)
+                self.selectables[x_dependent_on].dependents.sort()
+            except LookupError:
+                pass
 
         for k, t in self.triggers.items():
             for dep_name in t.dependent_on:
@@ -1425,7 +1427,8 @@ class PostgreSQL(DBInspector):
                 quoted_full_name = "{}.{}".format(
                     quoted_identifier(schema), quoted_identifier(name)
                 )
-                return self.enums[quoted_full_name]
+
+                return self.enums.get(quoted_full_name)
 
             columns = [
                 ColumnInfo(
@@ -1441,6 +1444,7 @@ class PostgreSQL(DBInspector):
                     is_identity=c.is_identity,
                     is_identity_always=c.is_identity_always,
                     is_generated=c.is_generated,
+                    can_drop_generated=self.pg_version >= 13,
                 )
                 for c in clist
                 if c.position_number
