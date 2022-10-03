@@ -316,6 +316,7 @@ class InspectedFunction(InspectedSelectable):
             self.identity_signature == other.identity_signature
             and self.signature == other.signature
             and self.result_string == other.result_string
+            and self.returntype == other.returntype
             and self.definition == other.definition
             and self.language == other.language
             and self.volatility == other.volatility
