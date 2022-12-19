@@ -1667,11 +1667,14 @@ class PostgreSQL(DBInspector):
         if schema and exclude_schema:
             raise ValueError("Can only have schema or exclude schema, not both")
 
+        if isinstance(exclude_schema, str):
+            exclude_schema = exclude_schema.split(",")
+
         def equal_to_schema(x):
             return x.schema == schema
 
         def not_equal_to_exclude_schema(x):
-            return x.schema != exclude_schema
+            return x.schema not in exclude_schema
 
         if schema:
             comparator = equal_to_schema
