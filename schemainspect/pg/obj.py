@@ -996,44 +996,29 @@ class InspectedPrivilege(Inspected):
 
 
 class InspectedComment(Inspected):
-    def __init__(self, object_type, schema, table, name, args, comment):
+    def __init__(self, object_type, identifier, comment):
+        self.identifier = identifier
         self.object_type = object_type
-        self.schema = schema
-        self.table = table
-        self.name = name
-        self.args = args
         self.comment = comment
 
     @property
-    def _identifier(self):
-        return quoted_identifier(
-            self.name,
-            schema=self.schema,
-            table=self.table,
-            identity_arguments=self.args,
-        )
-
-    @property
     def drop_statement(self):
-        return "comment on {} {} is null;".format(self.object_type, self._identifier)
+        return "comment on {} {} is null;".format(self.object_type, self.identifier)
 
     @property
     def create_statement(self):
-        return "comment on {} {} is '{}';".format(
-            self.object_type, self._identifier, self.comment
+        return "comment on {} {} is $cmt${}$cmt$;".format(
+            self.object_type, self.identifier, self.comment
         )
 
     @property
     def key(self):
-        return "{} {}".format(self.object_type, self._identifier)
+        return "{} {}".format(self.object_type, self.identifier)
 
     def __eq__(self, other):
         return (
             self.object_type == other.object_type
-            and self.schema == other.schema
-            and self.table == other.table
-            and self.name == other.name
-            and self.args == other.args
+            and self.identifier == other.identifier
             and self.comment == other.comment
         )
 
@@ -1710,14 +1695,11 @@ class PostgreSQL(DBInspector):
         self.domains = od((t.signature, t) for t in domains)
 
     def load_comments(self):
-        q = self.c.execute(self.COMMENTS_QUERY)
+        q = self.execute(self.COMMENTS_QUERY)
         comments = [
             InspectedComment(
                 i.object_type,
-                i.schema,
-                i.table,
-                i.name,
-                i.args,
+                i.identifier,
                 i.comment,
             )
             for i in q

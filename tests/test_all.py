@@ -279,7 +279,9 @@ def setup_pg_schema(s):
             language sql;
         """
     )
-    s.execute("comment on function films_f(date, text, date) is 'films_f comment'")
+    s.execute(
+        "comment on function public.films_f(date, text, date) is 'films_f comment'"
+    )
     s.execute(
         """
         CREATE OR REPLACE FUNCTION inc_f(integer) RETURNS integer AS $$
@@ -499,13 +501,13 @@ def asserts_pg(i, has_timescale=False):
     assert len(i.comments) == 2
     assert (
         i.comments[
-            'function "public"."films_f"(d date, def_t text, def_d date)'
+            "function public.films_f(pg_catalog.date,pg_catalog.text,pg_catalog.date)"
         ].create_statement
-        == 'comment on function "public"."films_f"(d date, def_t text, def_d date) is \'films_f comment\';'
+        == "comment on function public.films_f(pg_catalog.date,pg_catalog.text,pg_catalog.date) is $cmt$films_f comment$cmt$;"
     )
     assert (
-        i.comments['table "public"."emptytable"'].create_statement
-        == 'comment on table "public"."emptytable" is \'emptytable comment\';'
+        i.comments["table public.emptytable"].create_statement
+        == "comment on table public.emptytable is $cmt$emptytable comment$cmt$;"
     )
 
 
