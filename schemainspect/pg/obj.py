@@ -34,6 +34,7 @@ TRIGGERS_QUERY = resource_text("sql/triggers.sql")
 COLLATIONS_QUERY = resource_text("sql/collations.sql")
 COLLATIONS_QUERY_9 = resource_text("sql/collations9.sql")
 RLSPOLICIES_QUERY = resource_text("sql/rlspolicies.sql")
+COMMENTS_QUERY = resource_text("sql/comments.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
@@ -994,6 +995,34 @@ class InspectedPrivilege(Inspected):
         return self.object_type, self.quoted_full_name, self.target_user, self.privilege
 
 
+class InspectedComment(Inspected):
+    def __init__(self, object_type, identifier, comment):
+        self.identifier = identifier
+        self.object_type = object_type
+        self.comment = comment
+
+    @property
+    def drop_statement(self):
+        return "comment on {} {} is null;".format(self.object_type, self.identifier)
+
+    @property
+    def create_statement(self):
+        return "comment on {} {} is $cmt${}$cmt$;".format(
+            self.object_type, self.identifier, self.comment
+        )
+
+    @property
+    def key(self):
+        return "{} {}".format(self.object_type, self.identifier)
+
+    def __eq__(self, other):
+        return (
+            self.object_type == other.object_type
+            and self.identifier == other.identifier
+            and self.comment == other.comment
+        )
+
+
 RLS_POLICY_CREATE = """create policy {name}
 on {table_name}
 as {permissiveness}
@@ -1134,6 +1163,7 @@ class PostgreSQL(DBInspector):
         self.SCHEMAS_QUERY = processed(SCHEMAS_QUERY)
         self.PRIVILEGES_QUERY = processed(PRIVILEGES_QUERY)
         self.TRIGGERS_QUERY = processed(TRIGGERS_QUERY)
+        self.COMMENTS_QUERY = processed(COMMENTS_QUERY)
 
         super(PostgreSQL, self).__init__(c, include_internal)
 
@@ -1160,6 +1190,7 @@ class PostgreSQL(DBInspector):
         self.load_rlspolicies()
         self.load_types()
         self.load_domains()
+        self.load_comments()
 
         self.load_deps()
         self.load_deps_all()
@@ -1663,6 +1694,18 @@ class PostgreSQL(DBInspector):
         ]  # type: list[InspectedType]
         self.domains = od((t.signature, t) for t in domains)
 
+    def load_comments(self):
+        q = self.execute(self.COMMENTS_QUERY)
+        comments = [
+            InspectedComment(
+                i.object_type,
+                i.identifier,
+                i.comment,
+            )
+            for i in q
+        ]  # type: list[InspectedComment]
+        self.comments = od((t.key, t) for t in comments)
+
     def filter_schema(self, schema=None, exclude_schema=None):
         if schema and exclude_schema:
             raise ValueError("Can only have schema or exclude schema, not both")
@@ -1765,4 +1808,5 @@ class PostgreSQL(DBInspector):
             and self.triggers == other.triggers
             and self.collations == other.collations
             and self.rlspolicies == other.rlspolicies
+            and self.comments == other.comments
         )
