@@ -75,6 +75,10 @@ select
     a.atttypid::regtype AS datatype,
     a.attidentity != '' as is_identity,
     a.attidentity = 'a' as is_identity_always,
+    array_to_string(a.attoptions, ';') as attoptions,
+    a.attstattarget as attstattarget,
+    -- PRE_15 null as attcompression,
+    -- 15_ONLY a.attcompression as attcompression,
     -- PRE_12 false as is_generated,
     -- 12_ONLY a.attgenerated != '' as is_generated,
     (SELECT c.collname FROM pg_catalog.pg_collation c, pg_catalog.pg_type t

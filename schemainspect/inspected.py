@@ -53,6 +53,9 @@ class ColumnInfo(AutoRepr):
         is_generated=False,
         is_inherited=False,
         can_drop_generated=False,
+        attoptions=None,
+        attstattarget=None,
+        attcompression=None,
     ):
         self.name = name or ""
         self.dbtype = dbtype
@@ -68,6 +71,9 @@ class ColumnInfo(AutoRepr):
         self.is_generated = is_generated
         self.is_inherited = is_inherited
         self.can_drop_generated = can_drop_generated
+        self.attoptions = attoptions.split(";") if attoptions else None
+        self.attstattarget = attstattarget
+        self.attcompression = attcompression
 
     def __eq__(self, other):
         return (
@@ -82,6 +88,9 @@ class ColumnInfo(AutoRepr):
             and self.is_identity_always == other.is_identity_always
             and self.is_generated == other.is_generated
             and self.is_inherited == other.is_inherited
+            and self.attoptions == other.attoptions
+            and self.attstattarget == other.attstattarget
+            and self.attcompression == other.attcompression
         )
 
     def alter_clauses(self, other):
@@ -128,11 +137,52 @@ class ColumnInfo(AutoRepr):
             else:
                 clauses.append(self.alter_data_type_clause)
 
+        if self.attoptions != other.attoptions:
+            pfx, areset, aset = self.alter_options_clause(other)
+            if areset:
+                clauses.append(pfx + areset)
+            if aset:
+                clauses.append(pfx + aset)
+
+        if self.attstattarget != other.attstattarget:
+            clauses.append(self.alter_stat_clause(other))
+
+        if self.attcompression != other.attcompression:
+            clauses.append(self.alter_compression_clause(other))
+
         return clauses
+
+    COMPRESSIONS = {"": "default", "l": "lz4", "p": "pglz"}
+
+    def alter_compression_clause(self, other):
+        if self.attcompression == other.attcompression:
+            return ""  # NOP, just for sanity
+        comp = self.COMPRESSIONS.get(self.attcompression,
+                                     "default; -- actually unknown {!r}"
+                                     .format(self.attcompression))
+        return "alter column {} set compression {}".format(self.quoted_name, comp)
+
+    def alter_stat_clause(self, other):
+        if self.attstattarget == other.attstattarget:
+            return ""  # NOP, just for sanity
+        return "alter column {} set statistics {}".format(self.quoted_name,
+                                                          self.attstattarget)
+
+    def alter_options_clause(self, other):
+        if self.attoptions == other.attoptions:
+            return ""  # NOP, just for sanity
+        prefix = "alter column {} ".format(self.quoted_name)
+        action_set = "set ({})".format(",".join(self.attoptions)) \
+                     if self.attoptions else None
+        action_reset = "reset ({})".format(
+            ",".join(o.split("=", 1)[0] for o in other.attoptions)
+        ) if other.attoptions else None
+        return prefix, action_reset, action_set
 
     def change_enum_to_string_statement(self, table_name):
         if self.is_enum:
-            return "alter table {} alter column {} set data type varchar using {}::varchar;".format(
+            return ("alter table {} alter column {}"
+                    " set data type varchar using {}::varchar;").format(
                 table_name, self.quoted_name, self.quoted_name
             )
 
@@ -142,7 +192,8 @@ class ColumnInfo(AutoRepr):
     def change_string_to_enum_statement(self, table_name):
         if self.is_enum:
             return (
-                "alter table {} alter column {} set data type {} using {}::{};".format(
+                "alter table {} alter column {} set data type {} using {}::{};"
+                .format(
                     table_name,
                     self.quoted_name,
                     self.dbtypestr,
@@ -155,12 +206,15 @@ class ColumnInfo(AutoRepr):
 
     def change_enum_statement(self, table_name):
         if self.is_enum:
-            return "alter table {} alter column {} type {} using {}::text::{};".format(
-                table_name,
-                self.name,
-                self.enum.quoted_full_name,
-                self.name,
-                self.enum.quoted_full_name,
+            return (
+                "alter table {} alter column {} type {} using {}::text::{};"
+                .format(
+                    table_name,
+                    self.name,
+                    self.enum.quoted_full_name,
+                    self.name,
+                    self.enum.quoted_full_name,
+                )
             )
         else:
             raise ValueError
@@ -327,3 +381,4 @@ class InspectedSelectable(Inspected):
             self.persistence == other.persistence,
         )
         return all(equalities)
+# vim:set ai et ts=4 sts=4 sw=4 cc=80:EOF #
