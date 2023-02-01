@@ -1114,10 +1114,14 @@ class PostgreSQL(DBInspector):
 
             if pg_version >= 12:
                 replace = "-- 12_ONLY"
+                if pg_version >= 15:
+                    replace2 = "-- 15_ONLY"
             else:
                 replace = "-- PRE_12"
+                replace2 = "-- PRE_15"
 
-            all_relations_query = all_relations_query.replace(replace, "")
+            all_relations_query = all_relations_query \
+                .replace(replace, "").replace(replace2, "")
             self.ALL_RELATIONS_QUERY = processed(all_relations_query)
             self.COLLATIONS_QUERY = processed(COLLATIONS_QUERY)
             self.RLSPOLICIES_QUERY = processed(RLSPOLICIES_QUERY)
@@ -1422,6 +1426,9 @@ class PostgreSQL(DBInspector):
                     is_identity_always=c.is_identity_always,
                     is_generated=c.is_generated,
                     can_drop_generated=self.pg_version >= 13,
+                    attoptions=c.attoptions,
+                    attstattarget=c.attstattarget,
+                    attcompression=c.attcompression,
                 )
                 for c in clist
                 if c.position_number
@@ -1766,3 +1773,4 @@ class PostgreSQL(DBInspector):
             and self.collations == other.collations
             and self.rlspolicies == other.rlspolicies
         )
+# vim:set ai et ts=4 sts=4 sw=4 cc=80:EOF #
