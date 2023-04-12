@@ -1,4 +1,3 @@
-
 with things1 as (
   select
     oid as objid,
@@ -55,6 +54,15 @@ things as (
       and nspname not like 'pg_temp_%' and nspname not like 'pg_toast_temp_%'
       and extension_objids.extension_objid is null
 ),
+array_dependencies as (
+  select
+    att.attrelid as objid,
+    att.attname as column_name,
+    tbl.typrelid as objid_dependent_on
+  from pg_attribute att
+  join pg_type tbl on tbl.oid = att.atttypid
+  where tbl.typcategory = 'A'
+),
 combined as (
   select distinct
     t.objid,
@@ -80,6 +88,24 @@ combined as (
     d.deptype in ('n')
     and
     rw.rulename = '_RETURN'
+  union all
+  select
+    t.objid,
+    t.schema,
+    t.name,
+    t.identity_arguments,
+    t.kind,
+    things_dependent_on.objid as objid_dependent_on,
+    things_dependent_on.schema as schema_dependent_on,
+    things_dependent_on.name as name_dependent_on,
+    things_dependent_on.identity_arguments as identity_arguments_dependent_on,
+    things_dependent_on.kind as kind_dependent_on
+  FROM
+    array_dependencies ad
+    inner join things things_dependent_on
+    on ad.objid_dependent_on = things_dependent_on.objid
+    inner join things t
+    on ad.objid = t.objid
 )
 select * from combined
 order by

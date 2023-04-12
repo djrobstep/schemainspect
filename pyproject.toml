@@ -10,7 +10,7 @@ repository = "https://github.com/djrobstep/schemainspect"
 homepage = "https://github.com/djrobstep/schemainspect"
 
 [tool.poetry.dependencies]
-python = ">=3.7,<4"
+python = ">=3.9,<4"
 sqlalchemy = "*"
 
 [tool.poetry.dev-dependencies]

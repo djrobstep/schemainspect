@@ -34,6 +34,7 @@ TRIGGERS_QUERY = resource_text("sql/triggers.sql")
 COLLATIONS_QUERY = resource_text("sql/collations.sql")
 COLLATIONS_QUERY_9 = resource_text("sql/collations9.sql")
 RLSPOLICIES_QUERY = resource_text("sql/rlspolicies.sql")
+COMMENTS_QUERY = resource_text("sql/comments.sql")
 
 
 class InspectedSelectable(BaseInspectedSelectable):
@@ -1017,6 +1018,54 @@ class InspectedPrivilege(Inspected):
         )
 
 
+class InspectedComment(Inspected):
+    def __init__(
+        self,
+        object_type: str,
+        object_addr: list[str],
+        object_args: list[str],
+        comment,
+        create_statement,
+        drop_statement,
+    ):
+        self.object_type = object_type
+        self.object_addr = tuple(object_addr)
+        self.object_args = tuple(object_args)
+        self.comment = comment
+        self._create_statement = create_statement
+        self._drop_statement = drop_statement
+        self.name = object_addr[-1]
+        self.schema = object_addr[0]
+
+    @property
+    def quoted_full_name(self):
+        if self.object_type == "type":
+            return
+        return "{}.{}".format(
+            quoted_identifier(self.schema), quoted_identifier(self.name)
+        )
+
+    @property
+    def drop_statement(self):
+        return self._drop_statement
+
+    @property
+    def create_statement(self):
+        return self._create_statement
+
+    def __eq__(self, other):
+        equalities = (
+            self.object_type == other.object_type,
+            self.object_addr == other.object_addr,
+            self.object_args == other.object_args,
+        )
+        return all(equalities)
+
+    @property
+    def key(self):
+        return self.object_type, self.object_addr, self.object_args
+
+
 RLS_POLICY_CREATE = """create policy {name}
 on {table_name}
 as {permissiveness}
@@ -1157,6 +1206,7 @@ class PostgreSQL(DBInspector):
         self.SCHEMAS_QUERY = processed(SCHEMAS_QUERY)
         self.PRIVILEGES_QUERY = processed(PRIVILEGES_QUERY)
         self.TRIGGERS_QUERY = processed(TRIGGERS_QUERY)
+        self.COMMENTS_QUERY = processed(COMMENTS_QUERY)
 
         super(PostgreSQL, self).__init__(c, include_internal)
 
@@ -1186,6 +1236,13 @@ class PostgreSQL(DBInspector):
 
         self.load_deps()
         self.load_deps_all()
+
+        self.load_comments()
+
+    def load_comments(self):
+        q = self.execute(self.COMMENTS_QUERY)
+        comments = [InspectedComment(**each) for each in q]
+        self.comments = od((comment.key, comment) for comment in comments)
 
     def load_schemas(self):
         q = self.execute(self.SCHEMAS_QUERY)
