@@ -1025,6 +1025,7 @@ class InspectedComment(Inspected):
         object_addr: list[str],
         object_args: list[str],
         comment,
+        object_description,
         create_statement,
         drop_statement,
     ):
@@ -1032,6 +1033,7 @@ class InspectedComment(Inspected):
         self.object_addr = tuple(object_addr)
         self.object_args = tuple(object_args)
         self.comment = comment
+        self.object_description = object_description
         self._create_statement = create_statement
         self._drop_statement = drop_statement
         self.name = object_addr[-1]
@@ -1039,11 +1041,7 @@ class InspectedComment(Inspected):
 
     @property
     def quoted_full_name(self):
-        if self.object_type == "type":
-            return
-        return "{}.{}".format(
-            quoted_identifier(self.schema), quoted_identifier(self.name)
-        )
+        return self.object_description
 
     @property
     def drop_statement(self):
@@ -1241,7 +1239,7 @@ class PostgreSQL(DBInspector):
 
     def load_comments(self):
         q = self.execute(self.COMMENTS_QUERY)
-        comments = [InspectedComment(**each) for each in q]
+        comments = [InspectedComment(*each) for each in q]
         self.comments = od((comment.key, comment) for comment in comments)
 
     def load_schemas(self):
