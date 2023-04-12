@@ -19,6 +19,15 @@ with things1 as (
   where oid not in (
     select ftrelid from pg_foreign_table
   )
+    union
+    select
+        oid,
+        typnamespace as namespace,
+        typname as name,
+        null as identity_arguments,
+        'c' as kind
+    from pg_type
+    where typrelid != 0
 ),
 extension_objids as (
   select
@@ -58,9 +67,11 @@ array_dependencies as (
   select
     att.attrelid as objid,
     att.attname as column_name,
-    tbl.typrelid as objid_dependent_on
+    tbl.typelem as composite_type_oid,
+    comp_tbl.typrelid as objid_dependent_on
   from pg_attribute att
   join pg_type tbl on tbl.oid = att.atttypid
+  join pg_type comp_tbl on tbl.typelem = comp_tbl.oid
   where tbl.typcategory = 'A'
 ),
 combined as (
@@ -110,4 +121,4 @@ combined as (
 select * from combined
 order by
 schema, name, identity_arguments, kind_dependent_on,
-schema_dependent_on, name_dependent_on, identity_arguments_dependent_on
+schema_dependent_on, name_dependent_on, identity_arguments_dependent_on;
