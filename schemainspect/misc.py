@@ -41,6 +41,9 @@ class AutoRepr:  # pragma: no cover
     def __ne__(self, other):
         return not self == other
 
+    def is_equal(self, other, ignore_newlines=True):
+        return self.__eq__(other)
+
 
 def unquoted_identifier(identifier, *, schema=None, identity_arguments=None):
     if identifier is None and schema is not None:

@@ -36,6 +36,10 @@ COLLATIONS_QUERY_9 = resource_text("sql/collations9.sql")
 RLSPOLICIES_QUERY = resource_text("sql/rlspolicies.sql")
 
 
+def normalize_newlines(text):
+    return '\n'.join(text.splitlines())
+
+
 class InspectedSelectable(BaseInspectedSelectable):
     def has_compatible_columns(self, other):
         def names_and_types(cols):
@@ -305,17 +309,24 @@ class InspectedFunction(InspectedSelectable):
     def drop_statement(self):
         return "drop {} if exists {};".format(self.thing, self.signature)
 
-    def __eq__(self, other):
+    def is_equal(self, other, ignore_newlines=False):
         return (
             self.signature == other.signature
             and self.result_string == other.result_string
-            and self.definition == other.definition
+            and (
+                (normalize_newlines(self.definition.lower()) == normalize_newlines(other.definition.lower()))
+                if ignore_newlines
+                else (self.definition == other.definition)
+            )
             and self.language == other.language
             and self.volatility == other.volatility
             and self.strictness == other.strictness
             and self.security_type == other.security_type
             and self.kind == other.kind
         )
+
+    def __eq__(self, other):
+        return self.is_equal(other, ignore_newlines=False)
 
 
 class InspectedTrigger(Inspected):
