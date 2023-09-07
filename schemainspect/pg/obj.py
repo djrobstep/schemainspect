@@ -24,6 +24,7 @@ INDEXES_QUERY = resource_text("sql/indexes.sql")
 SEQUENCES_QUERY = resource_text("sql/sequences.sql")
 CONSTRAINTS_QUERY = resource_text("sql/constraints.sql")
 FUNCTIONS_QUERY = resource_text("sql/functions.sql")
+AGG_FUNCTIONS_QUERY = resource_text("sql/agg_functions.sql")
 TYPES_QUERY = resource_text("sql/types.sql")
 DOMAINS_QUERY = resource_text("sql/domains.sql")
 EXTENSIONS_QUERY = resource_text("sql/extensions.sql")
@@ -325,6 +326,88 @@ class InspectedFunction(InspectedSelectable):
             and self.security_type == other.security_type
             and self.kind == other.kind
         )
+
+class InspectedAggFunction(InspectedSelectable):
+    def __init__(self, object_type, object_addr, object_args, schema, name, function_arguments,
+                 function_identity_arguments, aggtransfn, aggfinalfn, aggmtransfn, aggmfinalfn, aggtransspace,
+                 agginitval, aggminitval, state_type):
+
+        self.object_type = object_type
+        self.object_addr = tuple(object_addr)
+        self.object_args = tuple(object_args)
+        self.schema = schema
+        self.name = name
+        self.function_arguments = function_arguments
+        self.function_identity_arguments = function_identity_arguments
+
+        self.aggtransfn = aggtransfn
+        self.aggfinalfn = aggfinalfn
+        self.aggmtransfn = aggmtransfn
+        self.aggmfinalfn = aggmfinalfn
+        self.aggtransspace = aggtransspace
+        self.agginitval = agginitval
+        self.aggminitval = aggminitval
+        self.state_type = state_type
+
+        super(InspectedAggFunction, self).__init__(
+            name=name,
+            schema=schema,
+            columns=None,
+            inputs=self.object_args,
+            definition="",
+            relationtype="a",
+            comment=None,
+        )
+
+    @property
+    def signature(self):
+        return "{}({})".format(self.quoted_full_name, self.function_arguments)
+
+    @property
+    def identity_signature(self):
+        return "{}({})".format(self.quoted_full_name, self.function_identity_arguments)
+
+    @property
+    def create_statement(self):
+        ddl = f"CREATE AGGREGATE {self.quoted_full_name} ("
+
+        # Add arguments
+        ddl += f"{self.function_arguments}) (\n"
+
+        # Add options
+        options = []
+        if self.aggtransfn:
+            options.append(f"  SFUNC = {self.aggtransfn}")
+        if self.aggfinalfn:
+            options.append(f"  FINALFUNC = {self.aggfinalfn}")
+        if self.aggmtransfn:
+            options.append(f"  MSFUNC = {self.aggmtransfn}")
+        if self.aggmfinalfn:
+            options.append(f"  MFINALFUNC = {self.aggmfinalfn}")
+        if self.state_type:
+            options.append(f"  STYPE = {self.state_type}")
+        if self.agginitval:
+            options.append(f"  INITCOND = '{self.agginitval}'")
+        if self.aggminitval:
+            options.append(f"  MINITCOND = '{self.aggminitval}'")
+
+        ddl += ",\n".join(options)
+        ddl += "\n);"
+
+        return ddl
+
+
+    @property
+    def drop_statement(self):
+        return "drop aggregate if exists {};".format(self.identity_signature)
+
+    def __eq__(self, other):
+        return (
+            self.object_type == other.object_type
+            and self.object_addr == other.object_addr
+            and self.object_args == other.object_args
+        )
+
 
 
 class InspectedTrigger(Inspected):
@@ -1143,7 +1226,7 @@ class InspectedRowPolicy(Inspected, TableRelated):
         return all(equalities)
 
 
-PROPS = "schemas relations tables views functions selectables sequences constraints indexes enums extensions privileges collations triggers rlspolicies"
+PROPS = "schemas relations tables views functions aggregate_functions selectables sequences constraints indexes enums extensions privileges collations triggers rlspolicies"
 
 
 class PostgreSQL(DBInspector):
@@ -1196,6 +1279,7 @@ class PostgreSQL(DBInspector):
         self.SEQUENCES_QUERY = processed(SEQUENCES_QUERY)
         self.CONSTRAINTS_QUERY = processed(CONSTRAINTS_QUERY)
         self.FUNCTIONS_QUERY = processed(FUNCTIONS_QUERY)
+        self.AGG_FUNCTIONS_QUERY = processed(AGG_FUNCTIONS_QUERY)
         self.TYPES_QUERY = processed(TYPES_QUERY)
         self.DOMAINS_QUERY = processed(DOMAINS_QUERY)
         self.EXTENSIONS_QUERY = processed(EXTENSIONS_QUERY)
@@ -1220,10 +1304,12 @@ class PostgreSQL(DBInspector):
         self.load_schemas()
         self.load_all_relations()
         self.load_functions()
+        self.load_aggregate_functions()
         self.selectables = od()
         self.selectables.update(self.relations)
         self.selectables.update(self.composite_types)
         self.selectables.update(self.functions)
+        self.selectables.update(self.aggregate_functions)
 
         self.load_privileges()
         self.load_triggers()
@@ -1695,6 +1781,35 @@ class PostgreSQL(DBInspector):
             identity_arguments = "({})".format(s.identity_arguments)
             self.functions[s.quoted_full_name + identity_arguments] = s
 
+    def load_aggregate_functions(self):
+        q = self.execute(self.AGG_FUNCTIONS_QUERY)
+        agg_functions = [
+            InspectedAggFunction(
+                object_type=i.object_type,
+                object_addr=i.object_addr,
+                object_args=i.object_args,
+                schema=i.schema,
+                name=i.name,
+                function_arguments=i.function_arguments,
+                function_identity_arguments=i.function_identity_arguments,
+                aggtransfn=i.aggtransfn,
+                aggfinalfn=i.aggfinalfn,
+                aggmtransfn=i.aggmtransfn,
+                aggmfinalfn=i.aggmfinalfn,
+                aggtransspace=i.aggtransspace,
+                agginitval=i.agginitval,
+                aggminitval=i.aggminitval,
+                state_type=i.state_type
+            )
+            for i in q
+        ]
+        self.aggregate_functions = od(
+            (i.identity_signature , i) for i in agg_functions
+        )
+
+
+
+
     def load_triggers(self):
         q = self.execute(self.TRIGGERS_QUERY)
         triggers = [
@@ -1842,6 +1957,7 @@ class PostgreSQL(DBInspector):
             and self.constraints == other.constraints
             and self.extensions == other.extensions
             and self.functions == other.functions
+            and self.agg_functions == other.agg_functions
             and self.triggers == other.triggers
             and self.collations == other.collations
             and self.rlspolicies == other.rlspolicies
