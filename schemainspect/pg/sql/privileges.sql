@@ -1,3 +1,9 @@
+WITH partition_child_tables as (
+  select
+      inhrelid
+  from
+      pg_inherits
+)
 select
     n.nspname as schema,
     c.relname as name,
@@ -24,6 +30,8 @@ where
     acl.grantee != acl.grantor
     and acl.grantee != 0
     and c.relkind in ('r', 'v', 'm', 'S', 'f', 'p')
+    -- and table is not a partition child table
+    and c.oid not in (select inhrelid from partition_child_tables)
 -- SKIP_INTERNAL    and nspname not in ('pg_internal', 'pg_catalog', 'information_schema', 'pg_toast')
 -- SKIP_INTERNAL    and nspname not like 'pg_temp_%' and nspname not like 'pg_toast_temp_%'
 union
