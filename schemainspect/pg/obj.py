@@ -1138,13 +1138,10 @@ class PostgreSQL(DBInspector):
         super(PostgreSQL, self).__init__(c, include_internal)
 
     def execute(self, *args, **kwargs):
-        result = self.c.execute(*args, **kwargs)
-
-        if result is None:
-            return self.c.fetchall()
-        else:
-            return result
-
+        with self.c.connect() as conn:
+            result = conn.execute(*args, **kwargs)
+            return result.fetchall()
+            
     def load_all(self):
         self.load_schemas()
         self.load_all_relations()
