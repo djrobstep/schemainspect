@@ -6,6 +6,12 @@ with extension_oids as (
   WHERE
      d.refclassid = 'pg_extension'::regclass and
      d.classid = 'pg_trigger'::regclass
+),
+partition_child_tables as (
+  select
+      inhrelid
+  from
+      pg_inherits
 )
 select
     tg.tgname "name",
@@ -22,5 +28,6 @@ join pg_namespace nsp on nsp.oid = cls.relnamespace
 join pg_proc proc on proc.oid = tg.tgfoid
 join pg_namespace nspp on nspp.oid = proc.pronamespace
 where not tg.tgisinternal
+  and cls.oid not in (select * from partition_child_tables)  -- Exclude partition child tables
 -- SKIP_INTERNAL and not tg.oid in (select * from extension_oids)
 order by schema, table_name, name;

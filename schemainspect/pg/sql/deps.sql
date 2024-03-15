@@ -1,11 +1,11 @@
-
 with things1 as (
   select
     oid as objid,
     pronamespace as namespace,
     proname as name,
     pg_get_function_identity_arguments(oid) as identity_arguments,
-    'f' as kind
+    'f' as kind,
+    null::oid as composite_type_oid
   from pg_proc
   -- 11_AND_LATER where pg_proc.prokind != 'a'
   -- 10_AND_EARLIER where pg_proc.proisagg is False
@@ -15,11 +15,22 @@ with things1 as (
     relnamespace as namespace,
     relname as name,
     null as identity_arguments,
-    relkind as kind
+    relkind as kind,
+    null::oid as composite_type_oid
   from pg_class
   where oid not in (
     select ftrelid from pg_foreign_table
   )
+    union
+    select
+        oid,
+        typnamespace as namespace,
+        typname as name,
+        null as identity_arguments,
+        'c' as kind,
+        typrelid::oid as composite_type_oid
+    from pg_type
+    where typrelid != 0
 ),
 extension_objids as (
   select
@@ -43,7 +54,8 @@ things as (
       kind,
       n.nspname as schema,
       name,
-      identity_arguments
+      identity_arguments,
+      t.composite_type_oid
     from things1 t
     inner join pg_namespace n
       on t.namespace = n.oid
@@ -55,13 +67,24 @@ things as (
       and nspname not like 'pg_temp_%' and nspname not like 'pg_toast_temp_%'
       and extension_objids.extension_objid is null
 ),
+array_dependencies as (
+  select
+    att.attrelid as objid,
+    att.attname as column_name,
+    tbl.typelem as composite_type_oid,
+    comp_tbl.typrelid as objid_dependent_on
+  from pg_attribute att
+  join pg_type tbl on tbl.oid = att.atttypid
+  join pg_type comp_tbl on tbl.typelem = comp_tbl.oid
+  where tbl.typcategory = 'A'
+),
 combined as (
   select distinct
-    t.objid,
+    coalesce(t.composite_type_oid, t.objid),
     t.schema,
     t.name,
     t.identity_arguments,
-    t.kind,
+    case when t.composite_type_oid is not null then 'r' ELSE t.kind end,
     things_dependent_on.objid as objid_dependent_on,
     things_dependent_on.schema as schema_dependent_on,
     things_dependent_on.name as name_dependent_on,
@@ -80,6 +103,44 @@ combined as (
     d.deptype in ('n')
     and
     rw.rulename = '_RETURN'
+  union all
+  select distinct
+    coalesce(t.composite_type_oid, t.objid),
+    t.schema,
+    t.name,
+    t.identity_arguments,
+    case when t.composite_type_oid is not null then 'r' ELSE t.kind end,
+    things_dependent_on.objid as objid_dependent_on,
+    things_dependent_on.schema as schema_dependent_on,
+    things_dependent_on.name as name_dependent_on,
+    things_dependent_on.identity_arguments as identity_arguments_dependent_on,
+    things_dependent_on.kind as kind_dependent_on
+  FROM
+      pg_depend d
+      inner join things things_dependent_on
+        on d.refobjid = things_dependent_on.objid
+      inner join things t
+        on d.objid = t.objid
+  where
+    d.deptype in ('n')
+  union all
+  select
+    coalesce(t.composite_type_oid, t.objid),
+    t.schema,
+    t.name,
+    t.identity_arguments,
+    case when t.composite_type_oid is not null then 'r' ELSE t.kind end,
+    things_dependent_on.objid as objid_dependent_on,
+    things_dependent_on.schema as schema_dependent_on,
+    things_dependent_on.name as name_dependent_on,
+    things_dependent_on.identity_arguments as identity_arguments_dependent_on,
+    things_dependent_on.kind as kind_dependent_on
+  FROM
+    array_dependencies ad
+    inner join things things_dependent_on
+    on ad.objid_dependent_on = things_dependent_on.objid
+    inner join things t
+    on ad.objid = t.objid
 )
 select * from combined
 order by
