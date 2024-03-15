@@ -327,10 +327,26 @@ class InspectedFunction(InspectedSelectable):
             and self.kind == other.kind
         )
 
+
 class InspectedAggFunction(InspectedSelectable):
-    def __init__(self, object_type, object_addr, object_args, schema, name, function_arguments,
-                 function_identity_arguments, aggtransfn, aggfinalfn, aggmtransfn, aggmfinalfn, aggtransspace,
-                 agginitval, aggminitval, state_type):
+    def __init__(
+        self,
+        object_type,
+        object_addr,
+        object_args,
+        schema,
+        name,
+        function_arguments,
+        function_identity_arguments,
+        aggtransfn,
+        aggfinalfn,
+        aggmtransfn,
+        aggmfinalfn,
+        aggtransspace,
+        agginitval,
+        aggminitval,
+        state_type,
+    ):
 
         self.object_type = object_type
         self.object_addr = tuple(object_addr)
@@ -396,7 +412,6 @@ class InspectedAggFunction(InspectedSelectable):
 
         return ddl
 
-
     @property
     def drop_statement(self):
         return "drop aggregate if exists {};".format(self.identity_signature)
@@ -407,7 +422,6 @@ class InspectedAggFunction(InspectedSelectable):
             and self.object_addr == other.object_addr
             and self.object_args == other.object_args
         )
-
 
 
 class InspectedTrigger(Inspected):
@@ -1799,16 +1813,11 @@ class PostgreSQL(DBInspector):
                 aggtransspace=i.aggtransspace,
                 agginitval=i.agginitval,
                 aggminitval=i.aggminitval,
-                state_type=i.state_type
+                state_type=i.state_type,
             )
             for i in q
         ]
-        self.aggregate_functions = od(
-            (i.identity_signature , i) for i in agg_functions
-        )
-
-
-
+        self.aggregate_functions = od((i.identity_signature, i) for i in agg_functions)
 
     def load_triggers(self):
         q = self.execute(self.TRIGGERS_QUERY)
